@@ -14,8 +14,12 @@
   - ML model loading & inference
   - Feature attribution & explainability
   - 59 tests passing
+
+- **Phase 3**: ✅ PARTIAL (Tasks 3.1-3.4 Complete, 3.5-3.8 Next)
+  - Business logic services: Churn, LTV, Cart, Pricing
+  - 35 tests passing
   
-- **Total Tests**: 328/328 passing ✅
+- **Total Tests**: 363/363 passing ✅
 
 ---
 
@@ -443,13 +447,13 @@
 
 ---
 
-## PHASE 3: Business Logic Services
+## PHASE 3: Business Logic Services ✅ PARTIAL (Tasks 3.1-3.4 Complete)
 
-### Task 3.1: Churn Service
+### Task 3.1: Churn Service ✅ COMPLETED
 **Description**: Business logic for churn prediction, scoring, segmentation, intervention tracking
 
 **Subtasks**:
-- [ ] `ChurnService` class
+- [x] `ChurnService` class ✅
   - `score_customer(customer_id: UUID) -> ChurnRiskScore` — REQ-001
     - Calls ChurnFeatureEngineer → Model inference → Explainer
     - Returns score (0–100), tier (HIGH/MEDIUM/LOW), factors, recommended intervention
