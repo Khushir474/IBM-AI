@@ -1,333 +1,378 @@
-# E-commerce Intelligence Platform — Requirements
+# Revenue Recovery Platform — Requirements
 
-> Unified ML platform combining **churn prediction**, **dynamic pricing**, and **customer LTV prediction** to drive retention and revenue optimization.
+> Unified ML platform combining **cart abandonment detection** and **dynamic pricing** to recover lost sales and optimize revenue through targeted discounting and price optimization.
 
 ## Personas
 
-### Persona 1: Marketing Manager
+### Persona 1: E-commerce Manager
 - **Name:** Alex
-- **Goal:** Identify at-risk customers and run targeted retention campaigns
-- **Pain Point:** Currently reacting to churn after it happens; wants to act before customers leave
-- **Frequency:** Checks platform daily, exports lists of at-risk customers weekly
+- **Goal:** Recover abandoned carts and maximize conversion rates on in-flight orders
+- **Pain Point:** Customers add items but don't check out; doesn't know why they're leaving or how to win them back
+- **Frequency:** Checks platform daily, exports recovery campaigns weekly
 
 ### Persona 2: Pricing / Revenue Manager
 - **Name:** Jordan
-- **Goal:** Optimize product prices to maximize revenue without leaving money on the table or pricing customers out
-- **Pain Point:** Prices are static; missing opportunities when demand spikes or inventory is low
-- **Frequency:** Reviews price recommendations weekly, adjusts high-impact products daily
+- **Goal:** Optimize prices and discounts to maximize revenue per cart while recovering abandonment
+- **Pain Point:** Discounts are reactive; doesn't know which discount level works best for which customer/product combo
+- **Frequency:** Reviews price recommendations weekly, tests discount strategies daily
 
 ### Persona 3: Data Analyst
 - **Name:** Sam
-- **Goal:** Explore customer segments, validate model predictions, understand drivers of churn/LTV
-- **Pain Point:** Models are black boxes; needs visibility into what features matter and why predictions differ
+- **Goal:** Understand why carts are abandoned, what recovery offers work, and validate model predictions
+- **Pain Point:** Models are black boxes; needs visibility into which factors drive abandonment and which interventions convert
 - **Frequency:** Deep-dive analysis ad-hoc (2–3 times per week)
 
 ### Persona 4: Finance / CFO
 - **Name:** Pat
-- **Goal:** Measure business impact: revenue lift, churn reduction, LTV growth from interventions
-- **Pain Point:** Wants proof that ML efforts actually move the needle; needs ROI calculations
+- **Goal:** Measure revenue impact of recovery campaigns and discount strategies; calculate true ROI
+- **Pain Point:** Wants proof that interventions move the needle; needs to understand discount cost vs. incremental revenue
 - **Frequency:** Monthly/quarterly reviews of dashboard KPIs
 
 ---
 
 ## User Flows
 
-### Flow 1: Marketing Manager Identifies At-Risk Customers
-1. Manager logs in and goes to **Churn Risk Dashboard**
-2. Manager sees a list of customers, ranked by churn risk (high → low)
-3. Each customer shows:
-   - Customer ID, name, LTV
-   - Churn risk score (0–100, color-coded: green/yellow/red)
-   - Reason for high risk (e.g., "No purchase in 45 days", "Last 3 orders returned")
-   - Recommended intervention (e.g., "Send discount email", "VIP reactivation call")
-4. Manager filters by risk level: show top 500 high-risk customers
-5. Manager exports the list (CSV) with customer IDs, contact info, churn scores, recommended actions
-6. (Offline: marketing team runs email campaign, tracks conversions)
-7. Manager returns a week later to see: "Of 500 at-risk customers, 150 made a purchase within 7 days" → lift is measured
+### Flow 1: E-commerce Manager Reviews Abandoned Carts & Recovery Opportunities
+1. Manager logs in and goes to **Cart Abandonment Dashboard**
+2. Manager sees:
+   - Count of active abandoned carts (added items but didn't checkout)
+   - Count by time-to-abandon (abandoned <1 hour ago, <6 hours ago, <24 hours ago)
+   - Recovery opportunity (estimated revenue at risk if carts aren't recovered)
+3. Manager filters by recovery potential: show top 500 carts ranked by likelihood-to-convert-with-intervention
+4. For each cart, manager sees:
+   - Customer ID, cart value, products in cart
+   - Reason for abandonment hypothesis (e.g., "Price sensitive", "Shipping cost shock", "Product out of stock")
+   - Recommended intervention: e.g., "10% discount on cart total", "Free shipping over $X", "Personalized product swap"
+   - Conversion likelihood with intervention (e.g., "78% likely to convert if you send this offer")
+5. Manager selects top 200 carts and sends recovery email with recommended discount code
+6. (Offline: email sends, customer sees offer)
+7. Manager returns 48 hours later to see results: "Of 200 sent, 45 converted (22.5% recovery rate)" → measures lift
 
-### Flow 2: Revenue Manager Reviews Price Recommendations
-1. Manager logs in and goes to **Dynamic Pricing Dashboard**
-2. Manager sees a table of products with:
-   - Current price
-   - Recommended price
-   - Expected revenue impact (e.g., "+$5,000/day" or "-2% margin")
-   - Reason (e.g., "Low inventory, high demand", "Competitor price dropped 10%", "Seasonality spike")
-3. Manager reviews top 20 products by revenue impact
-4. Manager can:
-   - Accept a recommendation (system applies new price)
-   - Reject a recommendation (system learns; won't suggest again soon)
-   - Set a price cap (e.g., "never go below $X or above $Y")
-5. Manager sees a chart: "Price change → demand response over time" to validate the elasticity model
-6. Weekly recap: "Recommended prices generated +$250K revenue this week vs. static baseline"
+### Flow 2: Pricing Manager Optimizes Prices & Discount Strategy
+1. Manager logs in and goes to **Dynamic Pricing & Discount Dashboard**
+2. Manager sees products ranked by recovery opportunity:
+   - Product name, current price, current discount (if any)
+   - Abandonment rate for this product (% of carts containing it that abandon)
+   - Recommended price/discount strategy
+   - Expected impact: "−$2 per unit, but +40 units sold, net +$80/day"
+3. Manager sees a table: by discount level (5%, 10%, 15%, 20%), what's the expected conversion impact?
+   - Example: "10% discount → 18% recovery rate. 15% discount → 22% recovery rate. Cost of extra 4%: $X margin"
+4. Manager can set:
+   - Max discount per product (e.g., "never go >20% off")
+   - Min margin floor (e.g., "never go below 25% margin")
+   - Bundle offers (e.g., "buy product A, get 10% off product B")
+5. Manager approves discount strategy
+6. System sends offers to customers with abandoned carts
+7. One week later, manager sees: "Discount strategy generated +$50K incremental revenue vs. no intervention"
 
-### Flow 3: Data Analyst Explores Churn Drivers
-1. Analyst logs in and goes to **Model Insights / Explainability**
-2. Analyst can drill into a specific customer's churn prediction:
-   - Churn score: 78/100
-   - Top 5 factors driving this score:
-     - "No purchase in 50 days" (contribution: +25 points)
-     - "Last order returned" (contribution: +18 points)
-     - "Below-average customer in cohort" (contribution: +15 points)
-     - "High price sensitivity (low basket value)" (contribution: +12 points)
-     - "Competitor has lower prices" (contribution: +8 points)
-3. Analyst can see cohort-level trends:
-   - "Customers acquired in Q3 2024 have 15% higher churn" (find why?)
-   - "Product category A has 2x churn vs. category B" (investigate supply/quality issues?)
-4. Analyst can compare: "Churn prediction accuracy on recent data" (check for model drift)
-5. Analyst exports a report: feature importance, cohort comparisons, model performance metrics
+### Flow 3: Data Analyst Investigates Abandonment Drivers
+1. Analyst logs in and goes to **Abandonment Analysis / Explainability**
+2. Analyst drills into a specific abandoned cart:
+   - Cart value: $150
+   - Products: shoes ($80), socks ($15), jacket ($55)
+   - Abandonment time: cart created 2 hours ago, no checkout yet
+   - Top factors driving high abandon risk:
+     - "High cart value (>$100)" → customers abandon expensive carts 2x more often
+     - "Shipping cost shock: $25 added" → total with shipping $175, customer expected <$160
+     - "Product not in stock for 3 days" → jacket has low availability score
+     - "Customer previously abandoned similar-value cart" → repeat abandoner
+3. Analyst sees cohort-level trends:
+   - "Mobile shoppers abandon at 3x rate of desktop users" → investigate mobile checkout flow
+   - "Carts with 3+ items abandon more than 1–2 item carts" → suggest bundle deals to reduce item count
+   - "Free-shipping threshold is $100; carts near threshold abandon more often" → test lowering threshold
+4. Analyst can compare: "Abandonment prediction accuracy on recent data" (check for model drift)
+5. Analyst exports a report: top abandonment factors by cohort, recovery offer effectiveness, model diagnostics
 
-### Flow 4: CFO Reviews Monthly Impact Dashboard
-1. CFO logs in and sees a **Business Impact Dashboard** with KPIs:
-   - **Retention:** "Churn rate: 8.2% this month (was 9.1% last month, -0.9 pp)" 
-   - **Revenue:** "Dynamic pricing contributed +$1.2M incremental revenue YTD"
-   - **Customer Value:** "Average new customer LTV: $450 (up 5% YoY)"
-   - **ROI:** "Retention campaigns cost $50K, saved $400K in LTV" (8x ROI)
-2. CFO sees trend charts: how these metrics have changed over 12 months
-3. CFO can drill into: "Which interventions worked best?" (email vs. discount vs. call)
-4. CFO exports quarterly report with findings and recommendations
+### Flow 4: CFO Reviews Revenue Impact Dashboard
+1. CFO logs in and sees **Revenue Recovery Dashboard** with KPIs:
+   - **Recovery Rate:** "Cart recovery: 18% this month (vs. 12% baseline, +50% lift)"
+   - **Incremental Revenue:** "Recovery campaigns added $250K this month"
+   - **ROI:** "Spent $50K on discounts, recovered $250K in sales, margin-adjusted ROI: 3.2x"
+   - **Discount Optimization:** "Price optimization contributed +$100K vs. static pricing"
+   - **Net Impact:** "Total revenue opportunity captured this month: $350K"
+2. CFO sees trend charts: how recovery rate and incremental revenue have changed over 12 months
+3. CFO can drill into: "Which discount strategies worked best?" (by discount level, product category, customer segment)
+4. CFO exports quarterly report with findings, ROI calculations, and recommendations
 
 ---
 
 ## Requirements
 
-### **CHURN PREDICTION MODULE**
+### **CART ABANDONMENT DETECTION & RECOVERY MODULE**
 
-### REQ-001: Score Customers by Churn Risk
-**Description:** System predicts which customers are likely to churn in the next 30 days and assigns a risk score (0–100).
+### REQ-001: Detect Abandoned Carts in Real-Time
+**Description:** System identifies carts that have been idle (no updates) for a threshold period (e.g., 1 hour, 6 hours, 24 hours) and flags them as abandoned.
 
 **Acceptance Criteria:**
-- Every customer in the system receives a churn risk score
-- Score ranges from 0 (very low risk) to 100 (very high risk)
-- Scores are updated daily with fresh data
-- Score reflects customer's likelihood of NOT making a purchase in the next 30 days
-- Prediction is based on customer's historical behavior (purchase history, recency, frequency, product affinity, cohort patterns)
+- Every active cart in Cassandra `active_carts` is monitored
+- Cart is marked abandoned if no updates for configurable threshold (default: 1 hour)
+- Abandoned cart status includes:
+  - Time of abandonment (when threshold was crossed)
+  - Cart contents (products, quantities, prices at time of abandonment)
+  - Cart value (sum of product prices)
+  - Customer ID and customer metadata (email, loyalty tier, etc.)
+- Cart status is updated in real-time as new data arrives (at least daily refresh)
+- Abandoned carts can be filtered by time-to-abandon (1h, 6h, 24h, 7d cohorts)
+
+---
+
+### REQ-002: Score Carts by Recovery Likelihood
+**Description:** System predicts which abandoned carts are most likely to convert if sent a recovery offer.
+
+**Acceptance Criteria:**
+- Every abandoned cart receives a recovery score (0–100)
+- Score reflects probability that customer will complete purchase if sent intervention
+- Score is based on:
+  - Customer's purchase history (repeat buyer? high-value customer?)
+  - Cart composition (product categories with high recovery rates?)
+  - Cart value (smaller carts recover better than very high-value ones?)
+  - Time-to-abandon (carts abandoned <1h recover better than 24h+?)
+  - Customer's previous abandonment behavior (does this customer usually abandon then buy later?)
 - Model performance is measurable: precision, recall, AUC reported on holdout test set
+- Score updates as new abandonment data arrives
 
 ---
 
-### REQ-002: Explain Churn Risk with Interpretable Factors
-**Description:** For each customer, system shows top factors driving their churn risk so analysts/marketers understand "why" the model flagged them.
+### REQ-003: Explain Cart Abandonment with Interpretable Factors
+**Description:** For each abandoned cart, system shows likely reasons WHY the customer abandoned (price, shipping cost, stock availability, etc.) so interventions can be targeted.
 
 **Acceptance Criteria:**
-- Each high-risk customer shows 3–5 key factors explaining their score
-- Factors are human-readable (e.g., "No purchase in 60 days", "Last order returned", "Low lifetime value for cohort")
-- Factors include a contribution score showing impact on overall churn prediction
-- Analyst can drill into a factor to see supporting data (e.g., last purchase date, return rate, cohort average)
-- Factor importance aligns with model internals (not a guess post-hoc explanation)
+- Each abandoned cart shows 3–5 key factors explaining abandonment risk:
+  - "Shipping cost ($25) is 17% of cart value" (price sensitivity)
+  - "Product out of stock for 5 days" (availability)
+  - "Customer is price-sensitive (previous carts <$50)" (behavior)
+  - "Mobile checkout flow (higher abandon rate)" (channel)
+  - "Cart value $150+ (customers abandon expensive carts 2x more)" (cart composition)
+- Factors include a contribution score showing impact on abandonment prediction
+- Analyst can drill into a factor to see supporting data (e.g., current stock status, historical recovery rate for similar carts)
+- Factors align with model internals (not a guess post-hoc explanation)
 
 ---
 
-### REQ-003: Segment Customers by Churn Risk Tier
-**Description:** Customers are grouped into actionable tiers (Low / Medium / High) so marketing can target interventions efficiently.
+### REQ-004: Recommend Targeted Recovery Offers
+**Description:** For each abandoned cart, system recommends a specific intervention (discount level, free shipping, product swap, etc.) most likely to convert that customer.
 
 **Acceptance Criteria:**
-- System defines three tiers: Low (0–33), Medium (34–66), High (67–100)
-- Each tier has a target intervention:
-  - Low: no action needed
-  - Medium: nurture campaigns (email, exclusive offers)
-  - High: high-touch intervention (phone call, VIP reactivation offer)
-- Tier definitions can be adjusted (e.g., change threshold from 67 to 75)
-- Count of customers in each tier is visible and updated daily
+- Each recoverable cart shows a recommended offer:
+  - Discount percentage (e.g., "10% off cart")
+  - Or free shipping if shipping cost is the barrier
+  - Or product substitution (e.g., "out-of-stock item → recommended alternative")
+  - Or bundle incentive (e.g., "buy shoe + sock, get 15% off total")
+- Recommendation is personalized based on:
+  - Abandonment reason (high shipping cost → offer free shipping)
+  - Customer price sensitivity (inferred from history)
+  - Product category (some categories recover better with discount vs. free shipping)
+  - What worked for similar customers (cohort recovery rates)
+- Recommendation includes expected conversion probability with offer (e.g., "78% likely to convert with 10% discount")
+- Manager can override recommendation if they prefer different strategy
 
 ---
 
-### REQ-004: Recommend Interventions per Customer
-**Description:** For at-risk customers, system recommends which retention action is most likely to work.
+### REQ-005: Segment Abandoned Carts by Recovery Potential
+**Description:** Carts are grouped into actionable tiers so marketing can prioritize high-impact recoveries.
 
 **Acceptance Criteria:**
-- Each high/medium-risk customer shows a recommended intervention:
-  - Email offer (specific discount %, product category, or free shipping)
-  - Phone reactivation call
-  - VIP/loyalty tier upgrade
-  - Product recommendation (cross-sell based on historical interests)
-- Recommendation is personalized (e.g., "Send 20% off discount on shoes" if customer has shoe purchase history)
-- Recommendation is based on what worked for similar customers (cohort analysis)
-- Analyst can override recommendation if they know better
+- System defines three tiers by recovery potential:
+  - High (60–100 score): easy wins, high cart value, high-probability customers
+  - Medium (30–59 score): moderate effort, mixed cart value and customer quality
+  - Low (0–29 score): low probability, very price-sensitive, may not be worth intervention cost
+- Each tier has a recommended intervention intensity:
+  - High: aggressive (15% discount, free shipping, expedited handling)
+  - Medium: moderate (10% discount, free shipping)
+  - Low: light-touch (5% discount via email, no urgency)
+- Tier definitions can be adjusted (e.g., change threshold from 60 to 70)
+- Count of carts in each tier is visible and updated daily
 
 ---
 
-### REQ-005: Measure Churn Intervention Effectiveness
-**Description:** System tracks whether at-risk customers who received interventions actually stay or leave, measuring campaign lift.
+### REQ-006: Measure Cart Recovery Effectiveness
+**Description:** System tracks whether abandoned carts that received recovery offers actually convert, measuring campaign lift and ROI.
 
 **Acceptance Criteria:**
-- System can link a customer's intervention (e.g., email sent on 2024-01-15) to outcome (purchase within 7/14/30 days: yes/no)
+- System links abandonment event to recovery offer sent (date, discount level, offer type) to conversion outcome (completed purchase: yes/no)
+- For recovered carts, system records:
+  - Final purchase value (original cart value + changes)
+  - Actual discount used (what the customer paid)
+  - Time-to-recovery (hours between abandonment and purchase)
 - Dashboard shows:
-  - % of at-risk customers who made a purchase after intervention
-  - % without intervention (control baseline, if available)
-  - Lift = (intervention rate - control rate) / control rate
-- Report is available by intervention type (email vs. phone vs. offer type)
-- Data supports A/B testing: "Customers sent email offer converted at 18%, phone call at 25%" → phone is more effective
+  - Conversion rate by offer type (10% discount: 18% recovery, 15% discount: 22%, free shipping: 14%)
+  - Conversion rate by cohort (new vs. repeat customers; high-value vs. budget buyers)
+  - Recovery rate without intervention (control baseline, if available, e.g., carts that auto-convert after N days)
+  - Lift = (intervention recovery rate − control rate) / control rate
+- Report available: "This week's recovery offers: 200 sent, 45 converted, 22.5% recovery rate, $5,400 incremental revenue"
 
 ---
 
-### **CUSTOMER LTV PREDICTION MODULE**
-
-### REQ-006: Predict Customer Lifetime Value at Multiple Time Horizons
-**Description:** For each customer, system predicts their total lifetime spending at 7-day, 30-day, 90-day, and 1-year horizons.
+### REQ-007: Track Lost Carts & Churn Risk
+**Description:** System identifies customers who repeatedly abandon carts or have never recovered, indicating deeper issues.
 
 **Acceptance Criteria:**
-- Every customer has four LTV predictions: 7-day, 30-day, 90-day, 1-year
-- Prediction is the expected total spend (in USD) over that time window
-- Prediction is based on customer's purchase history, product affinity, cohort patterns, seasonality
-- New customers (no history) receive a cohort-average prediction
-- Prediction updates daily as new purchase data arrives
+- System flags customers with:
+  - 3+ abandoned carts in last 30 days (repeat abandoners)
+  - Abandoned carts totaling >$X in value (high-value losses)
+  - Zero recoveries despite offers (not responding to interventions)
+- These customers can be targeted with different strategies:
+  - "Repeat abandoner" → investigate checkout flow friction, offer customer support
+  - "High-value abandoner" → VIP concierge service, direct outreach
+  - "Non-responder to offers" → try different offer types or channels
+- Analyst can export list of at-risk customers with their abandonment patterns
 
 ---
 
-### REQ-007: Identify High-Value Customer Cohorts
-**Description:** System segments customers by their predicted LTV and highlights cohorts with different value profiles.
+### **DYNAMIC PRICING & DISCOUNT OPTIMIZATION MODULE**
+
+### REQ-008: Recommend Optimal Discounts by Product & Cohort
+**Description:** System analyzes abandonment patterns, price sensitivity, and historical recovery rates to recommend discount strategies that maximize revenue.
 
 **Acceptance Criteria:**
-- System shows customer segments ranked by predicted LTV (high → low)
-- Each segment includes:
-  - Segment name (e.g., "Luxury buyers", "Budget bargain hunters", "Seasonal spenders")
-  - Size (count of customers)
-  - Average predicted LTV
-  - Key characteristics (e.g., average order value, category preferences, purchase frequency)
-- Analyst can drill into a segment to see the cohort of customers
-- Segments refresh daily
+- System recommends discount levels for products based on:
+  - Abandonment rate for this product (products that appear in abandoned carts often)
+  - Price elasticity (how sensitive demand is to discount for this product)
+  - Recovery rate by discount level (historical: 10% discount recovers X%, 15% recovers Y%)
+  - Inventory level (low stock → don't discount; overstock → aggressive discount to clear)
+  - Margin targets (never recommend discount that drops margin below X%)
+- Recommendations are personalized by customer segment:
+  - New customers: higher discount (acquisition cost)
+  - Repeat customers: lower discount (less price-sensitive)
+  - High-value customers: non-monetary incentive (free shipping, expedited delivery)
+- Recommendation includes confidence level (high/medium/low) based on data quality
+- Recommendation is updated as new abandonment data arrives (at least daily)
 
 ---
 
-### REQ-008: Flag Early Indicators of High-Value Customers
-**Description:** System identifies newly acquired customers who show signals of becoming high-LTV customers within the first 7–30 days.
-
-**Acceptance Criteria:**
-- For new customers (first purchase within last 7 days), system flags high-potential prospects
-- Signals include:
-  - High first-purchase value (e.g., >$200)
-  - Repeat purchase within 3 days
-  - High customer in cohort (e.g., top 20% by spend for their acquisition source)
-  - Strong product affinity (bought from category with high repeat rate)
-- Flagged customers can be prioritized for email nurture, loyalty programs, VIP onboarding
-- Prediction accuracy is tracked: % of flagged customers who actually become high-LTV within 90 days
-
----
-
-### REQ-009: Compare Predicted vs. Actual LTV
-**Description:** For historical customers, system shows how well LTV predictions matched reality, tracking model accuracy over time.
-
-**Acceptance Criteria:**
-- For customers with complete 90-day/1-year windows in the past, show:
-  - Predicted LTV (made at day 0)
-  - Actual LTV (measured at day 90 / day 365)
-  - Accuracy metrics: MAE (mean absolute error), RMSE (root mean squared error)
-  - Calibration: are predictions on average too high or too low?
-- Accuracy is tracked over time to detect model drift
-- Analyst can export a report: "Model accuracy by cohort" (was prediction better for some groups?)
-
----
-
-### **DYNAMIC PRICING MODULE**
-
-### REQ-010: Recommend Optimal Prices by Product
-**Description:** System analyzes demand, inventory, competition, and seasonality to recommend prices that maximize revenue.
-
-**Acceptance Criteria:**
-- Every product receives a price recommendation
-- Recommendation accounts for:
-  - Current demand (historical daily sales, seasonality, trends)
-  - Inventory level (low stock → higher price to reduce demand; overstock → lower to clear)
-  - Competitor prices (match/beat/premium strategy based on product positioning)
-  - Price elasticity (how sensitive this product's demand is to price changes)
-  - Margin targets (never go below cost + minimum margin %)
-- Recommendation includes a confidence level (high/medium/low) based on data quality and model uncertainty
-- Recommendation is updated daily
-
----
-
-### REQ-011: Quantify Revenue Impact of Price Changes
-**Description:** For each price recommendation, system estimates the expected change in revenue (positive or negative) if the price is adopted.
+### REQ-009: Quantify Revenue Impact of Discount Strategies
+**Description:** For each discount recommendation, system estimates the impact on revenue, margin, and volume.
 
 **Acceptance Criteria:**
 - Each recommendation shows:
-  - Current price
-  - Recommended price
-  - Expected revenue change: "$X more per day" or "−$X less per day"
-  - Reason: e.g., "Low inventory (hold price)", "High demand (increase)", "Competitor undercut (decrease)"
-  - Assumptions: expected demand, elasticity, time horizon
-- Marketing manager can see top 20 products by revenue impact (easiest wins)
-- Revenue impact is measured ex-post (actual vs. baseline) to validate model
+  - Product, current price, recommended discount
+  - Expected conversion lift with discount (e.g., "+8% recovery rate")
+  - Expected unit volume change (e.g., "+50 units/day from recovered carts")
+  - Impact on average order value (discounts sometimes lower AOV if customer splits purchase)
+  - Revenue impact: "$X more per day" or "−$X less per day"
+  - Margin impact: "Keep margin at 28%" or "Margin drops to 22%"
+  - Net ROI: discount cost vs. incremental revenue captured
+- Manager can see top 20 products by revenue impact (easiest wins)
+- Revenue impact is measured ex-post (actual conversions vs. baseline) to validate model
 
 ---
 
-### REQ-012: Track Price Changes and Demand Response
-**Description:** System monitors what happens when prices are changed, measuring actual demand response and building a feedback loop for the model.
+### REQ-010: Test Discount Strategies via A/B Testing
+**Description:** Manager can run controlled experiments to measure which discount levels/types drive best results before rolling out broadly.
 
 **Acceptance Criteria:**
-- When a price is changed (recommended or manual), system logs:
-  - Product, old price, new price, date changed
-  - Sales volume before change (baseline, last 7 days)
-  - Sales volume after change (measured over next 7/14 days)
-  - Calculated elasticity: % change in sales / % change in price
-- Analyst can visualize: "Price history + sales volume over time" to see the correlation
-- Model learns from actual elasticity observed, improving future recommendations
-- Report available: "Price changes this month, elasticity observed, revenue impact"
+- Manager can define an experiment:
+  - Product and cohort (e.g., "abandoned carts with shoes, new customers")
+  - Treatments: e.g., "10% discount", "15% discount", "free shipping", "control (no offer)"
+  - Metric: cart recovery rate (within 7 days of offer)
+  - Duration: 1 week
+- System randomly assigns abandoned carts to treatment/control groups
+- After experiment, system reports:
+  - Recovery rate for each treatment
+  - Lift vs. control and statistical significance (p-value)
+  - Confidence interval on lift
+  - Revenue and margin impact for each treatment
+- Results inform broader discount recommendations: "15% discount works best; scale it up"
 
 ---
 
-### REQ-013: Set Price Boundaries and Policy Constraints
-**Description:** Manager can define guardrails (min/max prices, margin floors) so pricing stays compliant and sensible.
+### REQ-011: Set Price & Discount Guardrails
+**Description:** Manager defines business rules (min/max discounts, margin floors, bundle constraints) so recommendations stay sensible and compliant.
 
 **Acceptance Criteria:**
-- Manager can set per-product constraints:
-  - Min price: never go below $X (cost floor, competitive constraint)
-  - Max price: never go above $Y (customer perception, psychological pricing)
-  - Margin floor: never let margin drop below Z%
+- Manager can set constraints:
+  - Min discount: 0% (no forced discounting)
+  - Max discount per product: e.g., "never >20% off shoes"
+  - Margin floor: e.g., "never let margin drop below 25%"
+  - Max discounts per customer per month: e.g., "no customer gets >3 offers/month"
+  - Bundle rules: e.g., "can bundle shoes + socks, but not shoes + jacket"
 - Recommendations always respect these constraints
-- Constraints can be updated in bulk (e.g., "all shoes must have >30% margin")
+- Constraints can be updated in bulk (e.g., "all clearance items: max 40% off")
 - Constraint violations are logged for audit
+- System warns if constraints are too tight and prevent good recovery opportunities
 
 ---
 
-### REQ-014: Handle Inventory-Driven Pricing
-**Description:** System adjusts prices dynamically based on inventory levels, with high inventory prompting discounts and low inventory allowing price increases.
+### REQ-012: Handle Inventory-Driven Discounting
+**Description:** System adjusts discount recommendations based on inventory levels (clear overstock, protect low-stock items).
 
 **Acceptance Criteria:**
-- Current inventory is factored into price recommendations
-- High inventory (>60 days supply):
-  - Recommendation skews toward lower prices to accelerate sales
-  - Discount suggestions show inventory level as justification
-- Low inventory (<14 days supply):
-  - Recommendation can go higher (capture margin before stockout)
-  - Warning: "Limited stock, consider price increase"
+- Inventory level from Cassandra `products.stock_count` is factored into recommendation
+- Overstock (>60 days supply):
+  - Recommendation favors aggressive discounts to accelerate clearance
+  - Suggestion: "20% off to clear excess inventory"
+- Understocked (<7 days supply):
+  - Recommendation may reduce discount or recommend non-monetary incentive
+  - Suggestion: "Free shipping instead of discount; preserve margin on rare items"
 - Out of stock:
-  - Price is muted (can't sell anyway)
-  - Analyst sees "Restock needed" alert
+  - System can recommend product substitution in abandoned cart
+  - Suggestion: "Out of stock shoe → try this alternative at same price"
+
+---
+
+### REQ-013: Prevent Discount Abuse & Margin Erosion
+**Description:** System monitors discount usage to prevent customers from gaming offers or margin from eroding.
+
+**Acceptance Criteria:**
+- System tracks per-customer discount usage:
+  - How many times customer has used discount in last 30/90 days
+  - Pattern: are they abandoning carts repeatedly to farm discounts?
+- System alerts if:
+  - Customer receives >3 discount offers in 30 days (may be training them to wait for discounts)
+  - Discount usage rate is high for a product (>40% of sales at discounted price)
+  - Average transaction margin is trending down month-over-month
+- Manager can set caps:
+  - "Customer can use max 2 discounts per quarter"
+  - "This product sold at discounted price for >30% of sales → consider delisting or raising baseline price"
 
 ---
 
 ### **UNIFIED PLATFORM FEATURES**
 
-### REQ-015: Unified Dashboard with Cross-Module Insights
-**Description:** A single dashboard shows churn, LTV, and pricing insights together, with connections between them.
+### REQ-014: Unified Dashboard with Cart & Pricing Insights
+**Description:** Single dashboard shows cart abandonment and pricing strategies together, highlighting how they interact.
 
 **Acceptance Criteria:**
-- Dashboard shows three panels side-by-side:
-  - Left: Churn risk summary (count by tier, top 10 at-risk customers)
-  - Center: LTV summary (average LTV, high-value cohort size, new high-potential customers)
-  - Right: Pricing summary (price recommendations pending, revenue impact this week)
-- Cross-module insight example: "High-churn customers typically have low LTV; recommend VIP nurture program"
+- Dashboard shows three panels:
+  - Left: Abandonment summary (carts abandoned today, recovery rate, revenue at risk)
+  - Center: Top recovery opportunities (ranked carts + recommended offers)
+  - Right: Pricing summary (discount recommendations pending, revenue/margin impact this week)
+- Cross-module insight example: "Products with high abandonment are being under-discounted; recommend +5% discount on shoes"
 - Manager can navigate to detailed view for any panel
+- All metrics update daily
 
 ---
 
-### REQ-016: A/B Testing Support
-**Description:** System enables controlled experiments to measure which interventions (pricing, retention) actually drive results.
+### REQ-015: Recovery Campaign Management
+**Description:** Manager can create, execute, and track recovery campaigns (batches of recovery offers) via the platform.
 
 **Acceptance Criteria:**
-- Manager can define an experiment:
-  - Treatment: e.g., "send 20% discount email to at-risk customers"
-  - Control: e.g., no email
-  - Metric: purchase within 7 days
-  - Duration: 2 weeks
-- System randomly assigns customers to treatment/control
-- After experiment, system reports:
-  - Treatment conversion rate
-  - Control conversion rate
-  - Lift and statistical significance (p-value)
-  - Confidence interval on the lift
-- Experiment results inform recommendations: "This discount works; increase offer to 25%"
+- Manager can:
+  - Define campaign (e.g., "High-value abandoned carts recovery, 15% discount")
+  - Select audience (manually pick carts, or auto-select by criteria: recovery score >70, cart value >$100)
+  - Set offer details (discount %, code, expiration date)
+  - Schedule send (immediate, or scheduled for off-peak hours)
+- System exports campaign file (CSV or API) with customer IDs, emails, offer codes
+- Manager can integrate with email/SMS platform to send offers
+- After send, manager tracks:
+  - Carts sent
+  - Carts recovered (converted)
+  - Recovery rate, revenue generated, margin impact
+  - Cost of discounts vs. incremental revenue (ROI)
+
+---
+
+### REQ-016: Price Elasticity Learning
+**Description:** System learns actual price elasticity from historical discount experiments and recovery outcomes, improving future recommendations.
+
+**Acceptance Criteria:**
+- For each product, system maintains elasticity estimate:
+  - "Shoes: 10% discount → 15% recovery rate, 15% discount → 22% recovery rate"
+  - Elasticity = (% change in recovery rate) / (% change in discount)
+- Elasticity is updated as new experiment data arrives
+- Elasticity is broken down by cohort (new vs. repeat customers may have different elasticity)
+- Analyst can visualize: "Discount % vs. recovery rate" chart to see the curve
+- Model learns from real outcomes, improving future recommendations over time
 
 ---
 
@@ -335,52 +380,58 @@
 **Description:** Analyst can track whether models are accurate and alert if performance degrades (drift detection).
 
 **Acceptance Criteria:**
-- Dashboard shows model accuracy metrics (AUC, precision, recall, RMSE) updated weekly
+- Dashboard shows model accuracy metrics updated weekly:
+  - Abandonment prediction: AUC, precision, recall
+  - Recovery prediction: AUC, calibration (are predicted 70% converters actually ~70% converting?)
+  - Elasticity accuracy: do predicted recovery rates match actuals?
 - Accuracy is broken down by cohort (new customers, high-value, etc.) to spot segment-specific drift
 - Alert triggers if accuracy drops below threshold (e.g., AUC < 0.75)
-- Analyst can see: "Model was trained on data from 2024-01-01 to 2024-03-31. Accuracy on recent week: 0.82 (good)"
-- Root cause analysis hints: "Accuracy down in new-customer segment; may need retraining on recent data"
+- Analyst can see: "Model trained on 2024-01-01 to 2024-03-31. Accuracy on recent week: 0.82 (good)"
+- Root cause hints: "Accuracy down for mobile cohort; may need retraining on recent mobile data"
 
 ---
 
 ### REQ-018: Data Freshness and Latency Transparency
-**Description:** Users understand how recent the data is and when each prediction was last updated.
+**Description:** Users understand how recent the data is and when each prediction/recommendation was last updated.
 
 **Acceptance Criteria:**
-- Dashboard shows timestamps for:
-  - Last data refresh from Cassandra (operational data): e.g., "2 minutes ago"
-  - Last data refresh from Iceberg (historical analytics): e.g., "updated daily at 2 AM UTC"
-  - Last model update (churn/LTV/pricing): e.g., "trained yesterday, scoring runs daily at 3 AM"
-- Latency is acceptable for each use case:
-  - Churn scores: updated daily (manager can accept yesterday's scores)
-  - Price recommendations: updated daily (manager doesn't need real-time)
-  - LTV: updated daily (acceptable lag)
-- Alert if latency exceeds SLA (e.g., "Price recommendations stale for >24 hours")
+- Dashboard shows timestamps:
+  - Last refresh from Cassandra (operational data): "2 minutes ago"
+  - Last refresh from Iceberg (historical analytics): "updated daily at 2 AM UTC"
+  - Last model scoring (abandonment/recovery/elasticity): "scored daily at 3 AM"
+  - Last campaign send: "2024-01-15 at 10:15 AM"
+- Latency is acceptable for use case:
+  - Cart abandonment detection: within 1 hour of abandonment (manager can send recovery email same day)
+  - Recovery recommendations: updated daily (manager doesn't need real-time)
+  - Pricing recommendations: updated daily
+- Alert if latency exceeds SLA (e.g., "Recommendations stale for >24 hours")
 
 ---
 
 ### REQ-019: Export and Integration
-**Description:** Users can export insights and integrate with downstream systems (CRM, email platform, pricing engine).
+**Description:** Users can export insights and integrate with downstream systems (email, CRM, pricing engine).
 
 **Acceptance Criteria:**
-- Manager can export from any dashboard:
-  - CSV: at-risk customers + churn scores + recommended interventions
-  - CSV: price recommendations + inventory levels + revenue impact
-  - CSV: high-value customer cohorts + LTV predictions + characteristics
+- Manager can export:
+  - CSV: abandoned carts + recovery scores + recommended offers
+  - CSV: price/discount recommendations + revenue impact estimates
+  - CSV: campaign results (sent, converted, revenue, margin)
 - Exports are timestamped and include data freshness metadata
-- Exports can be scheduled (e.g., "email me the churn list every Monday morning")
-- API endpoints exist for programmatic access (third-party systems can pull data)
+- Exports can be scheduled (e.g., "email me the recovery list every morning")
+- API endpoints exist for programmatic access (third-party email/pricing systems can pull data)
+- Integration example: "System pushes recovery email list to Klaviyo CRM every 6 hours"
 
 ---
 
-### REQ-020: Authentication and Multi-Tenancy
+### REQ-020: Authentication and Data Isolation
 **Description:** Each company/account sees only its own data; no cross-contamination.
 
 **Acceptance Criteria:**
 - Users log in with credentials tied to their company
-- Dashboards show only that company's customers, products, transactions
+- Dashboards show only that company's carts, customers, products, transactions
 - Data is isolated at the database level (not just UI filtering)
 - Audit log tracks who accessed what and when
+- Fine-grained access control: e.g., "Marketing sees carts and offers, but not pricing recommendations"
 
 ---
 
@@ -388,18 +439,21 @@
 
 The following are explicitly **NOT** part of this platform:
 
-- **Trade execution:** System does not execute price changes or send emails; recommendations only. Humans decide and implement.
+- **Trade execution:** System does not send emails or apply discounts; recommendations and exports only. Manager/email platform executes.
 - **Inventory management:** No stock replenishment, purchase orders, or supply chain tools.
-- **Customer service / support tickets:** No ticketing system or customer support workflow.
-- **Product categorization:** Assumes product catalog is pre-loaded and categorized; no product taxonomy management.
+- **Customer service / support tickets:** No ticketing system or support workflows.
+- **Product categorization:** Assumes product catalog is pre-loaded and categorized.
 - **Fraud detection:** Does not flag fraudulent transactions or customers.
-- **International / multi-currency:** All pricing and LTV in USD; no forex or regional pricing strategies.
-- **Subscription / recurring revenue:** Focused on transaction-based e-commerce; not subscriptions or SaaS billing.
-- **Personalized recommendations:** No product recommendation engine (out of scope for this phase; REQ-004 mentions cross-sell but doesn't build a full recommender).
-- **Email/SMS sending:** No email/SMS platform integration; exports lists that marketers send via their own email tool.
-- **Custom ML models:** Uses pre-trained, standard models; no model training/tuning by end users.
-- **Real-time bidding / dynamic ad pricing:** Focused on owned-channel pricing; not ad spend optimization.
-- **Returns / refunds:** Does not model return likelihood or refund dynamics (assumes return data exists, uses as churn signal).
+- **International / multi-currency:** All pricing and recovery in USD; no forex or regional strategies.
+- **Subscription / recurring revenue:** Focused on transaction-based e-commerce; not subscriptions.
+- **Product recommendations:** No "you may also like" system (cart context is for recovery only).
+- **Email/SMS sending:** No email/SMS platform; exports lists that manager sends via their own tool.
+- **Custom ML models:** Uses pre-trained standard models; no model training/tuning by end users.
+- **Real-time bidding / ad pricing:** Focused on owned-channel recovery; not ad spend optimization.
+- **Full-page checkout redesign:** Does not redesign checkout flow (out of scope for this phase).
+- **Returns / refunds:** Does not model return likelihood (assumes return data exists, used as signal if needed).
+- **Loyalty program management:** Does not manage loyalty points, tiers, or rewards.
+- **Mobile app integration:** Focused on web checkout; does not cover in-app purchases.
 
 ---
 
@@ -407,11 +461,11 @@ The following are explicitly **NOT** part of this platform:
 
 The platform is successful when:
 
-1. **Churn:** Marketing can identify top 1,000 at-risk customers in <2 minutes; intervention lift is ≥5% (control baseline)
-2. **LTV:** New customers are segmented by predicted value; high-potential customers identified in first 7 days with >70% accuracy
-3. **Pricing:** Revenue manager sees price recommendations within 1 minute; implementing recommendations yields ≥2% revenue lift vs. static pricing
-4. **Data freshness:** All dashboards are updated within 24 hours of data arrival; no stale predictions
-5. **Explainability:** Analyst can drill into any prediction and understand top factors in <30 seconds
-6. **ROI measurable:** CFO can report: churn interventions saved $X in LTV; pricing changes added $Y revenue; new-customer LTV up Z%
-7. **Model accuracy:** Churn AUC >0.80, LTV MAE <10% of average, price elasticity captures real demand response
-8. **Integration:** Exports work without friction; data flows into CRM and email tools seamlessly
+1. **Cart Recovery:** Manager can identify top 500 recoverable carts in <2 minutes; recovery lift is ≥5% (control baseline)
+2. **Abandonment Insights:** Analyst can drill into any abandoned cart and understand top 3 reasons in <1 minute
+3. **Discount Optimization:** Pricing manager sees recommendations; implementing top 20 recommendations yields ≥3% incremental revenue vs. static baseline
+4. **Data Freshness:** All dashboards updated within 24 hours; no stale recommendations
+5. **ROI Measurable:** CFO can report: recovery campaigns generated $X incremental revenue, cost $Y in discounts, net ROI Z%
+6. **Model Accuracy:** Abandonment AUC >0.80, recovery prediction AUC >0.75, elasticity captures real demand response
+7. **A/B Testing:** Manager can run experiment, measure significance with confidence intervals, and apply winning strategy
+8. **Integration:** Exports work seamlessly; data flows to email and pricing tools without manual work
