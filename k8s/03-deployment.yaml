@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecommerce-intelligence-api
+  namespace: ecommerce-intelligence
+  labels:
+    app: ecommerce-intelligence
+    component: api
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ecommerce-intelligence
+      component: api
+  template:
+    metadata:
+      labels:
+        app: ecommerce-intelligence
+        component: api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: ecommerce-intelligence
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: api
+        image: ecommerce-intelligence:latest
+        imagePullPolicy: Always
+
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: ecommerce-intelligence-config
+
+        # Sensitive environment variables from Secret
+        env:
+        - name: WXD_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: WXD_HOST
+        - name: WORKSHOP_USER
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: WORKSHOP_USER
+        - name: WORKSHOP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: WORKSHOP_PASSWORD
+        - name: WORKSHOP_SCHEMA_SUFFIX
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: WORKSHOP_SCHEMA_SUFFIX
+        - name: CASSANDRA_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: CASSANDRA_HOST
+        - name: PRESTO_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-intelligence-secrets
+              key: PRESTO_HOST
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        # Resource limits
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+
+        # Volume mounts for logs
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+
+      # Volumes
+      volumes:
+      - name: logs
+        emptyDir: {}
+
+      # Pod disruption budget
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ecommerce-intelligence
+              topologyKey: kubernetes.io/hostname
+
+---
+# Pod Disruption Budget - ensure at least 2 replicas are always available
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ecommerce-intelligence-pdb
+  namespace: ecommerce-intelligence
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: ecommerce-intelligence
+      component: api

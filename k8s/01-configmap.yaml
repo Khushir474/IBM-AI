@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-intelligence-config
+  namespace: ecommerce-intelligence
+  labels:
+    app: ecommerce-intelligence
+    component: config
+data:
+  # API Configuration
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  LOG_LEVEL: "INFO"
+  STRUCTLOG_ENABLED: "true"
+
+  # Cassandra Configuration
+  CASSANDRA_PORT: "443"
+  CASSANDRA_USE_SSL: "true"
+  CASSANDRA_USE_ROUTE_ENDPOINT_FACTORY: "true"
+  CASSANDRA_CONNECTION_TIMEOUT: "5.0"
+  CASSANDRA_REQUEST_TIMEOUT: "5.0"
+  CASSANDRA_POOL_SIZE: "5"
+  CASSANDRA_MAX_RETRIES: "3"
+
+  # Presto Configuration
+  PRESTO_PORT: "443"
+  PRESTO_QUERY_TIMEOUT: "30.0"
+  PRESTO_POLL_INTERVAL: "0.5"
+  PRESTO_TOKEN_CACHE_TTL: "43200"  # 12 hours
+  PRESTO_ENABLE_QUERY_CACHE: "true"
+  PRESTO_CACHE_TTL: "86400"  # 24 hours
+  PRESTO_AUTO_PARTITION_FILTER: "true"
+
+  # Cache Configuration
+  CACHE_TTL_CHURN: "86400"      # 24 hours
+  CACHE_TTL_LTV: "86400"
+  CACHE_TTL_CART: "86400"
+  CACHE_TTL_PRODUCT: "3600"     # 1 hour
+  CACHE_METRICS_ENABLED: "true"
+
+  # ML Model Configuration
+  CHURN_MODEL_PATH: "/app/setup/models/churn_model.pkl"
+  LTV_MODEL_PATH: "/app/setup/models/ltv_model.pkl"
+  CART_RECOVERY_MODEL_PATH: "/app/setup/models/cart_recovery_model.pkl"
+  PRICING_MODEL_PATH: "/app/setup/models/pricing_model.pkl"
+  MODEL_INFERENCE_TIMEOUT: "10.0"
+
+  # Feature Flags
+  ENABLE_CHURN_SCORING: "true"
+  ENABLE_LTV_PREDICTION: "true"
+  ENABLE_CART_RECOVERY: "true"
+  ENABLE_PRICING_OPTIMIZATION: "true"
+  ENABLE_CAMPAIGN_TRACKING: "true"
+  ENABLE_EXPERIMENT_ENGINE: "true"

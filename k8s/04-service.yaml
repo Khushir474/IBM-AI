@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecommerce-intelligence-api
+  namespace: ecommerce-intelligence
+  labels:
+    app: ecommerce-intelligence
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  type: LoadBalancer
+  selector:
+    app: ecommerce-intelligence
+    component: api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# Internal Service for inter-pod communication (headless for service discovery)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecommerce-intelligence-internal
+  namespace: ecommerce-intelligence
+  labels:
+    app: ecommerce-intelligence
+    component: api
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for DNS
+  selector:
+    app: ecommerce-intelligence
+    component: api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+
+---
+# Route (OpenShift specific - comment out or remove if using vanilla Kubernetes)
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ecommerce-intelligence-api
+  namespace: ecommerce-intelligence
+  labels:
+    app: ecommerce-intelligence
+    component: api
+spec:
+  host: ecommerce-intelligence.apps.cluster.example.com
+  path: /
+  to:
+    kind: Service
+    name: ecommerce-intelligence-api
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

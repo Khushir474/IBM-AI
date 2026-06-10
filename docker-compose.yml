@@ -1,0 +1,67 @@
+# Local development Docker Compose
+# Provides FastAPI app with mounted source for live reloading
+
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-intelligence-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Load from .env (created by setup/connect-workshop.sh)
+      - WXD_HOST=${WXD_HOST}
+      - PRESTO_HOST=${PRESTO_HOST}
+      - PRESTO_PORT=${PRESTO_PORT:-443}
+      - CASSANDRA_HOST=${CASSANDRA_HOST}
+      - CASSANDRA_PORT=${CASSANDRA_PORT:-443}
+      - CASSANDRA_USE_SSL=${CASSANDRA_USE_SSL:-true}
+      - CASSANDRA_USE_ROUTE_ENDPOINT_FACTORY=${CASSANDRA_USE_ROUTE_ENDPOINT_FACTORY:-true}
+      - WORKSHOP_USER=${WORKSHOP_USER}
+      - WORKSHOP_PASSWORD=${WORKSHOP_PASSWORD}
+      - WORKSHOP_SCHEMA_SUFFIX=${WORKSHOP_SCHEMA_SUFFIX}
+
+      # API Configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=INFO
+      - STRUCTLOG_ENABLED=true
+
+      # ML Models
+      - CHURN_MODEL_PATH=/app/setup/models/churn_model.pkl
+      - LTV_MODEL_PATH=/app/setup/models/ltv_model.pkl
+      - CART_RECOVERY_MODEL_PATH=/app/setup/models/cart_recovery_model.pkl
+      - PRICING_MODEL_PATH=/app/setup/models/pricing_model.pkl
+
+      # Cache Configuration
+      - CACHE_TTL_CHURN=86400  # 24 hours
+      - CACHE_TTL_LTV=86400
+      - CACHE_TTL_CART=86400
+      - CACHE_TTL_PRODUCT=3600  # 1 hour
+      - CACHE_METRICS_ENABLED=true
+
+    volumes:
+      # Mount source for development (hot reload)
+      - ./src:/app/src:ro
+      - ./setup:/app/setup:ro
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    networks:
+      - ecommerce-net
+
+    # Enable stdin/stdout for debugging
+    stdin_open: true
+    tty: true
+
+networks:
+  ecommerce-net:
+    driver: bridge
