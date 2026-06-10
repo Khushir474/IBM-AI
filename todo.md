@@ -4,6 +4,21 @@
 
 ---
 
+## Progress Summary
+
+- **Phase 0 & 1**: ✅ COMPLETED (Tasks 0.1-1.6)
+  - Project infrastructure, data clients, DAOs, feature engineering
+  - 269 tests passing
+  
+- **Phase 2**: ✅ COMPLETED (Tasks 2.1-2.2)
+  - ML model loading & inference
+  - Feature attribution & explainability
+  - 59 tests passing
+  
+- **Total Tests**: 328/328 passing ✅
+
+---
+
 ## PHASE 0: Project Setup & Infrastructure (Foundation)
 
 ### Task 0.1: Project Scaffold ✅ COMPLETED
@@ -366,13 +381,13 @@
 
 ---
 
-## PHASE 2: ML Models & Inference
+## PHASE 2: ML Models & Inference ✅ COMPLETED
 
-### Task 2.1: Load & Serve Pre-trained ML Models
+### Task 2.1: Load & Serve Pre-trained ML Models ✅ COMPLETED
 **Description**: Load ONNX or scikit-learn models and expose inference methods
 
 **Subtasks**:
-- [ ] Create `ModelRepository` class
+- [x] Create `ModelRepository` class ✅
   - Load churn model (binary classifier: logistic regression or gradient boosting)
   - Load LTV model (regression: linear or gradient boosting)
   - Load cart recovery model (binary classifier)
@@ -380,42 +395,43 @@
   - Support model versioning (date-stamped or semver)
   - Cache loaded models in memory
 
-- [ ] Create `ModelInference` class with methods:
-  - `predict_churn_score(features: ChurnFeatures) -> float [0, 100]` — REQ-001
-  - `predict_ltv_horizons(features: LTVFeatures) -> Dict[str, float]` (7day, 30day, 90day, 365day) — REQ-006
-  - `predict_recovery_probability(features: CartFeatures) -> float [0, 100]` — REQ-011
-  - `recommend_price(features: PricingFeatures) -> Dict[str, float]` (price, discount_pct) — REQ-017
+- [x] Create `ModelInference` class with methods: ✅
+  - `predict_churn_score(features: ChurnFeatures) -> float [0, 100]` — REQ-001 ✅
+  - `predict_ltv_horizons(features: LTVFeatures) -> Dict[str, float]` (7day, 30day, 90day, 365day) — REQ-006 ✅
+  - `predict_recovery_probability(features: CartFeatures) -> float [0, 100]` — REQ-011 ✅
+  - `recommend_price(features: PricingFeatures) -> Dict[str, float]` (price, discount_pct) — REQ-017 ✅
 
-- [ ] Add prediction confidence scores (optional, for explainability)
-- [ ] Batch inference support (for large score updates)
+- [x] Add prediction confidence scores (optional, for explainability) ✅
+- [x] Batch inference support (for large score updates) ✅
 
 **Data Access**: None (pure model inference on pre-computed features)
 
-**Related Tests**:
-- Test 2.1.1: `test_model_load_churn` — loads successfully, right shape
-- Test 2.1.2: `test_model_inference_churn_range` — output in [0, 100]
-- Test 2.1.3: `test_model_inference_ltv_horizons` — 4 predictions returned
-- Test 2.1.4: `test_model_inference_batch` — efficient batch predictions
-- Test 2.1.5: `test_model_versioning` — loads specific model version
+**Related Tests**: 38 unit tests ✅
+- 20 tests for ModelRepository (loading, caching, versioning, edge cases)
+- 18 tests for ModelInference (features, predictions, all 4 model types)
 
 ---
 
-### Task 2.2: Explainability & Feature Attribution
+### Task 2.2: Explainability & Feature Attribution ✅ COMPLETED
 **Description**: Implement feature importance / SHAP-style explanations for predictions
 
 **Subtasks**:
-- [ ] Create `Explainer` class (can be simple)
+- [x] Create `Explainer` class (can be simple) ✅
   - For tree-based models: extract feature importances directly
   - For linear models: coefficients / weights as importances
   - For ONNX: approximate via perturbation or (if available) native SHAP
 
-- [ ] Implement `explain_churn_score(customer_id: UUID, score: float) -> List[ExplainabilityFactor]` — REQ-002
+- [x] Implement `explain_churn_score(customer_id: UUID, score: float) -> List[ExplainabilityFactor]` — REQ-002 ✅
   - Top 3–5 factors with human-readable descriptions + contribution scores
   - Supporting data (e.g., "last purchase date: 2024-01-01", "cohort churn rate: 15%")
 
-- [ ] Implement `explain_ltv_prediction(customer_id: UUID, predictions: Dict) -> List[ExplainabilityFactor]` — REQ-006
-- [ ] Implement `explain_recovery_score(customer_id: UUID, product_id: UUID, score: float) -> List[ExplainabilityFactor]` — REQ-012
-- [ ] Implement `explain_price_recommendation(product_id: UUID, recommendation: Dict) -> List[ExplainabilityFactor]` — implicit in REQ-018
+- [x] Implement `explain_ltv_prediction(customer_id: UUID, predictions: Dict) -> List[ExplainabilityFactor]` — REQ-006 ✅
+- [x] Implement `explain_recovery_score(customer_id: UUID, product_id: UUID, score: float) -> List[ExplainabilityFactor]` — REQ-012 ✅
+- [x] Implement `explain_price_recommendation(product_id: UUID, recommendation: Dict) -> List[ExplainabilityFactor]` — implicit in REQ-018 ✅
+
+**Related Tests**: 21 unit tests ✅
+- 18 tests for Explainer (churn, LTV, cart, pricing factors)
+- 3 integration tests (cross-module explanations)
 
 **Data Access**: Reads feature values for explanation context (from Cassandra + Iceberg, already computed)
 
