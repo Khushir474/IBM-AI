@@ -1,0 +1,1706 @@
+openapi: 3.1.0
+info:
+  title: E-commerce Intelligence Platform API
+  version: 1.0.0
+  description: |
+    Unified ML platform for churn prediction, customer LTV prediction,
+    cart abandonment recovery, and dynamic pricing optimization.
+
+    **Requirements Mapping**: Each endpoint is mapped to one or more REQ-IDs
+    from requirements.md (REQ-001, REQ-002, etc.)
+
+servers:
+  - url: https://api.ecommerce-intelligence.internal
+    description: Production
+  - url: http://localhost:8000
+    description: Local development
+
+tags:
+  - name: Churn Prediction
+    description: Identify at-risk customers and measure intervention effectiveness
+    externalDocs:
+      description: Requirements REQ-001 to REQ-005
+  - name: Customer LTV
+    description: Predict lifetime value and identify high-value customer segments
+    externalDocs:
+      description: Requirements REQ-006 to REQ-009
+  - name: Cart Abandonment
+    description: Detect abandoned carts and recommend recovery offers
+    externalDocs:
+      description: Requirements REQ-010 to REQ-016
+  - name: Dynamic Pricing
+    description: Optimize prices and discounts for revenue maximization
+    externalDocs:
+      description: Requirements REQ-017 to REQ-022
+  - name: Dashboard & Analytics
+    description: Unified insights, KPIs, and cross-module analysis
+    externalDocs:
+      description: Requirements REQ-023 to REQ-030
+  - name: Campaigns
+    description: Create and manage churn/recovery intervention campaigns
+  - name: System
+    description: Health checks, data freshness, model monitoring
+
+paths:
+  # ============================================================================
+  # CHURN PREDICTION MODULE
+  # ============================================================================
+
+  /api/v1/churn/customer/{customer_id}/risk-score:
+    get:
+      tags:
+        - Churn Prediction
+      summary: Get churn risk score for a customer
+      description: |
+        Returns a churn risk score (0–100) for a specific customer.
+        Score reflects probability of NOT making a purchase in next 30 days.
+
+        **Mapped to**: REQ-001, REQ-002
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Churn risk score retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnRiskScore'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Data source (Cassandra/Presto) unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/churn/customers:
+    get:
+      tags:
+        - Churn Prediction
+      summary: List customers by churn risk tier
+      description: |
+        Retrieve a paginated list of customers filtered by churn risk tier.
+        Useful for exporting lists for retention campaigns.
+
+        **Mapped to**: REQ-001, REQ-003
+      parameters:
+        - name: churn_tier
+          in: query
+          required: true
+          description: Filter by churn risk tier
+          schema:
+            type: string
+            enum: [HIGH, MEDIUM, LOW]
+        - name: limit
+          in: query
+          description: Max results per page
+          schema:
+            type: integer
+            default: 100
+            maximum: 5000
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of customers with churn scores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChurnRiskScore'
+                  total_count:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Data source unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/churn/customer/{customer_id}/factors:
+    get:
+      tags:
+        - Churn Prediction
+      summary: Explain churn risk with interpretable factors
+      description: |
+        Returns the top factors driving the churn risk score for a customer.
+        Each factor includes a human-readable description and contribution score.
+
+        **Mapped to**: REQ-002
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of factors with contributions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    format: uuid
+                  churn_risk_score:
+                    type: number
+                    format: float
+                  factors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExplainabilityFactor'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================================
+  # CUSTOMER LTV PREDICTION MODULE
+  # ============================================================================
+
+  /api/v1/ltv/customer/{customer_id}/predictions:
+    get:
+      tags:
+        - Customer LTV
+      summary: Get LTV predictions for a customer at multiple horizons
+      description: |
+        Returns predicted lifetime value for a customer at 7-day, 30-day, 90-day,
+        and 1-year horizons. Reflects expected total spending in each period.
+
+        **Mapped to**: REQ-006
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: LTV predictions at multiple horizons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LTVPredictions'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/ltv/customer/{customer_id}/value-drivers:
+    get:
+      tags:
+        - Customer LTV
+      summary: Explain LTV prediction with interpretable factors
+      description: |
+        Returns the top factors driving the LTV prediction for a customer.
+        Helps understand what makes this customer valuable (or not).
+
+        **Mapped to**: REQ-006 (indirectly via explainability)
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of factors driving LTV
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    format: uuid
+                  ltv_90d:
+                    type: number
+                    format: float
+                  drivers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExplainabilityFactor'
+
+  /api/v1/ltv/cohorts/high-value:
+    get:
+      tags:
+        - Customer LTV
+      summary: List high-value customer cohorts
+      description: |
+        Returns segments of customers grouped by predicted LTV with cohort statistics.
+
+        **Mapped to**: REQ-007
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: High-value customer cohorts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cohorts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LTVCohort'
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/v1/ltv/customers/new-high-potential:
+    get:
+      tags:
+        - Customer LTV
+      summary: Flag newly acquired customers with high LTV potential
+      description: |
+        Identifies new customers (first purchase <7 days) showing signals of
+        becoming high-LTV customers. Includes confidence score.
+
+        **Mapped to**: REQ-008
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: High-potential new customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HighPotentialCustomer'
+
+  /api/v1/ltv/accuracy:
+    get:
+      tags:
+        - Customer LTV
+      summary: Get LTV model accuracy metrics
+      description: |
+        Returns model performance metrics (MAE, RMSE, calibration) for LTV predictions.
+        Helps detect model drift.
+
+        **Mapped to**: REQ-009
+      responses:
+        '200':
+          description: Model accuracy metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelAccuracyMetrics'
+
+  # ============================================================================
+  # CART ABANDONMENT MODULE
+  # ============================================================================
+
+  /api/v1/carts/abandoned:
+    get:
+      tags:
+        - Cart Abandonment
+      summary: List abandoned carts by recovery potential
+      description: |
+        Retrieves abandoned carts ranked by recovery likelihood.
+        Includes cart value, customer info, and recovery score.
+
+        **Mapped to**: REQ-010, REQ-011, REQ-014
+      parameters:
+        - name: recovery_tier
+          in: query
+          required: true
+          description: Filter by recovery potential tier
+          schema:
+            type: string
+            enum: [HIGH, MEDIUM, LOW]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: min_age_hours
+          in: query
+          description: Min hours since abandonment
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of abandoned carts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  carts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AbandonedCartWithRecoveryScore'
+                  total_count:
+                    type: integer
+                  revenue_at_risk:
+                    type: number
+                    format: float
+
+  /api/v1/carts/{customer_id}/{product_id}/abandonment:
+    get:
+      tags:
+        - Cart Abandonment
+      summary: Get abandonment details and recovery factors for a cart item
+      description: |
+        Returns why a specific cart item was abandoned and factors driving
+        the recovery prediction.
+
+        **Mapped to**: REQ-012
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Abandonment analysis with recovery factors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    format: uuid
+                  product_id:
+                    type: string
+                    format: uuid
+                  abandon_time:
+                    type: string
+                    format: date-time
+                  recovery_score:
+                    type: number
+                    format: float
+                  factors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExplainabilityFactor'
+        '404':
+          description: Cart item not found
+
+  /api/v1/carts/{customer_id}/{product_id}/recovery-offer:
+    get:
+      tags:
+        - Cart Abandonment
+      summary: Get recommended recovery offer for an abandoned cart
+      description: |
+        Returns the recommended intervention (discount %, free shipping, etc.)
+        most likely to convert this abandoned cart, including conversion probability.
+
+        **Mapped to**: REQ-013
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recovery offer recommendation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryOfferRecommendation'
+
+  # ============================================================================
+  # DYNAMIC PRICING MODULE
+  # ============================================================================
+
+  /api/v1/pricing/products/{product_id}/recommendation:
+    get:
+      tags:
+        - Dynamic Pricing
+      summary: Get price and discount recommendation for a product
+      description: |
+        Returns optimal price/discount recommendation for a product considering
+        demand, inventory, competition, and margin targets.
+
+        **Mapped to**: REQ-017, REQ-018
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Price recommendation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceRecommendation'
+
+  /api/v1/pricing/dashboard:
+    get:
+      tags:
+        - Dynamic Pricing
+      summary: Get all pricing recommendations and revenue impact summary
+      description: |
+        Returns a dashboard-ready summary of all price recommendations ranked
+        by revenue impact and recovery opportunity.
+
+        **Mapped to**: REQ-017, REQ-018
+      parameters:
+        - name: category
+          in: query
+          description: Filter by product category
+          schema:
+            type: string
+        - name: min_revenue_impact
+          in: query
+          description: Min daily revenue impact threshold
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Pricing dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PriceRecommendation'
+                  total_revenue_opportunity:
+                    type: number
+                    format: float
+                  last_updated:
+                    type: string
+                    format: date-time
+
+  /api/v1/pricing/elasticity:
+    get:
+      tags:
+        - Dynamic Pricing
+      summary: Get price elasticity estimates for products
+      description: |
+        Returns learned price elasticity (% recovery lift per % discount change)
+        for products in the portfolio.
+
+        **Mapped to**: REQ-025
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Price elasticity data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  elasticity_estimates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ElasticityEstimate'
+
+  # ============================================================================
+  # CAMPAIGNS (CHURN & RECOVERY)
+  # ============================================================================
+
+  /api/v1/campaigns/churn:
+    post:
+      tags:
+        - Campaigns
+      summary: Create a churn intervention campaign
+      description: |
+        Create a new campaign to intervene on at-risk customers.
+        Accepts list of customer IDs and intervention details.
+
+        **Mapped to**: REQ-004, REQ-005
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChurnCampaignRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: Invalid campaign configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/campaigns/recovery:
+    post:
+      tags:
+        - Campaigns
+      summary: Create a cart recovery campaign
+      description: |
+        Create a new campaign to recover abandoned carts.
+        Accepts list of cart items and recovery offer details.
+
+        **Mapped to**: REQ-013, REQ-015
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecoveryCampaignRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+
+  /api/v1/campaigns/{campaign_id}:
+    get:
+      tags:
+        - Campaigns
+      summary: Get campaign status and metrics
+      description: Retrieve the current status and performance of a campaign.
+      parameters:
+        - name: campaign_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDetails'
+
+  /api/v1/campaigns/{campaign_id}/results:
+    get:
+      tags:
+        - Campaigns
+      summary: Get campaign results (sent, converted, revenue, ROI)
+      description: |
+        Retrieve performance metrics for a completed or in-progress campaign.
+
+        **Mapped to**: REQ-005 (churn), REQ-015 (recovery)
+      parameters:
+        - name: campaign_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResults'
+
+  # ============================================================================
+  # EXPERIMENTS (A/B TESTING)
+  # ============================================================================
+
+  /api/v1/pricing/experiments:
+    post:
+      tags:
+        - Dynamic Pricing
+      summary: Create a pricing discount A/B test
+      description: |
+        Set up a controlled experiment to test different discount levels
+        and measure recovery rate lift.
+
+        **Mapped to**: REQ-019
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePricingExperimentRequest'
+      responses:
+        '201':
+          description: Experiment created and started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResponse'
+
+  /api/v1/pricing/experiments/{experiment_id}/results:
+    get:
+      tags:
+        - Dynamic Pricing
+      summary: Get A/B test results with statistical significance
+      description: |
+        Retrieve experiment results showing recovery rate by treatment,
+        lift vs. control, and statistical significance.
+
+        **Mapped to**: REQ-019
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Experiment results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResults'
+
+  # ============================================================================
+  # DASHBOARD & ANALYTICS
+  # ============================================================================
+
+  /api/v1/dashboard/summary:
+    get:
+      tags:
+        - Dashboard & Analytics
+      summary: Get unified KPI dashboard
+      description: |
+        High-level business metrics across all modules: churn rate, LTV,
+        cart recovery rate, pricing lift, total ROI.
+
+        **Mapped to**: REQ-023
+      responses:
+        '200':
+          description: KPI summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardKPIs'
+
+  /api/v1/dashboard/customer/{customer_id}:
+    get:
+      tags:
+        - Dashboard & Analytics
+      summary: Get unified customer intelligence view
+      description: |
+        Comprehensive customer profile showing churn risk, LTV, abandonment history,
+        pricing response, and intervention history. Cross-module insights included.
+
+        **Mapped to**: REQ-026
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unified customer view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnifiedCustomerIntelligence'
+
+  # ============================================================================
+  # EXPORTS
+  # ============================================================================
+
+  /api/v1/exports/churn-customers:
+    post:
+      tags:
+        - Dashboard & Analytics
+      summary: Export list of churn-at-risk customers as CSV
+      description: |
+        Generate and download CSV export of at-risk customers with churn scores,
+        LTV, recommended interventions. Suitable for campaign tools.
+
+        **Mapped to**: REQ-029
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                churn_tier:
+                  type: string
+                  enum: [HIGH, MEDIUM, LOW]
+                limit:
+                  type: integer
+      responses:
+        '200':
+          description: CSV file content
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /api/v1/exports/recovery-carts:
+    post:
+      tags:
+        - Dashboard & Analytics
+      summary: Export list of recoverable carts as CSV
+      description: |
+        Generate and download CSV export of abandoned carts with recovery scores,
+        recommended offers, and customer info.
+
+        **Mapped to**: REQ-029
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recovery_tier:
+                  type: string
+                  enum: [HIGH, MEDIUM, LOW]
+                limit:
+                  type: integer
+      responses:
+        '200':
+          description: CSV file content
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # ============================================================================
+  # MONITORING & SYSTEM
+  # ============================================================================
+
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: |
+        Quick health status of the API and critical dependencies
+        (Cassandra, Presto, model files).
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded]
+                  timestamp:
+                    type: string
+                    format: date-time
+        '503':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/system/data-freshness:
+    get:
+      tags:
+        - System
+      summary: Check data freshness and latency
+      description: |
+        Returns timestamps of last data refresh from Cassandra, Iceberg,
+        and last model scoring. Helps identify stale data.
+
+        **Mapped to**: REQ-028
+      responses:
+        '200':
+          description: Data freshness information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFreshness'
+
+  /api/v1/models/performance:
+    get:
+      tags:
+        - System
+      summary: Get model accuracy metrics and drift detection
+      description: |
+        Returns performance metrics for all ML models (churn AUC, LTV MAE,
+        recovery AUC, elasticity accuracy). Helps detect model drift.
+
+        **Mapped to**: REQ-027
+      responses:
+        '200':
+          description: Model performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelPerformanceDashboard'
+
+components:
+  schemas:
+    # ========================================================================
+    # Response DTOs
+    # ========================================================================
+
+    ChurnRiskScore:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        churn_risk_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Probability of churn in next 30 days (0-100)
+        churn_tier:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+        loyalty_tier:
+          type: string
+        total_orders:
+          type: integer
+        current_ltv:
+          type: number
+          format: float
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExplainabilityFactor'
+        recommended_intervention:
+          type: string
+          enum: [EMAIL_OFFER, PHONE_CALL, VIP_UPGRADE, PRODUCT_RECOMMENDATION]
+        score_timestamp:
+          type: string
+          format: date-time
+
+    ExplainabilityFactor:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Human-readable factor name (e.g., "No purchase in 60 days")
+        contribution:
+          type: number
+          format: float
+          description: Contribution to overall score (typically 0-100)
+        description:
+          type: string
+        supporting_data:
+          type: object
+          additionalProperties: true
+          description: Contextual data (e.g., last_purchase_date, avg_order_value)
+
+    LTVPredictions:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        predictions:
+          type: object
+          properties:
+            ltv_7day:
+              type: number
+              format: float
+            ltv_30day:
+              type: number
+              format: float
+            ltv_90day:
+              type: number
+              format: float
+            ltv_365day:
+              type: number
+              format: float
+        cohort_info:
+          type: object
+          properties:
+            cohort_year:
+              type: integer
+            cohort_month:
+              type: integer
+            cohort_avg_ltv:
+              type: number
+              format: float
+            percentile_in_cohort:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+        score_timestamp:
+          type: string
+          format: date-time
+
+    LTVCohort:
+      type: object
+      properties:
+        cohort_name:
+          type: string
+        size:
+          type: integer
+        average_ltv:
+          type: number
+          format: float
+        key_characteristics:
+          type: array
+          items:
+            type: string
+        customer_sample:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            format: uuid
+
+    HighPotentialCustomer:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        first_purchase_date:
+          type: string
+          format: date
+        first_purchase_value:
+          type: number
+          format: float
+        predicted_90day_ltv:
+          type: number
+          format: float
+        high_potential_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        signals:
+          type: array
+          items:
+            type: string
+            description: Signals indicating high potential
+
+    AbandonedCartWithRecoveryScore:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              quantity:
+                type: integer
+              unit_price:
+                type: number
+                format: float
+        cart_value:
+          type: number
+          format: float
+        cart_age_hours:
+          type: integer
+        recovery_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        recovery_tier:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+        abandoned_at:
+          type: string
+          format: date-time
+
+    RecoveryOfferRecommendation:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        offer_type:
+          type: string
+          enum: [DISCOUNT, FREE_SHIPPING, PRODUCT_SUBSTITUTION, BUNDLE]
+        discount_pct:
+          type: number
+          format: float
+        free_shipping_threshold:
+          type: number
+          format: float
+        expected_conversion_probability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+          description: Why this offer is recommended for this customer
+
+    PriceRecommendation:
+      type: object
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        product_name:
+          type: string
+        current_price:
+          type: number
+          format: float
+        recommended_price:
+          type: number
+          format: float
+        discount_pct:
+          type: number
+          format: float
+        expected_recovery_lift_pct:
+          type: number
+          format: float
+        expected_revenue_impact:
+          type: number
+          format: float
+          description: Daily revenue change if adopted
+        expected_volume_change:
+          type: integer
+          description: Expected daily unit volume change
+        margin_after_discount:
+          type: number
+          format: float
+        inventory_days_supply:
+          type: number
+          format: float
+        reason:
+          type: string
+          enum: [LOW_INVENTORY, HIGH_INVENTORY, COMPETITOR_UNDERCUT, DEMAND_SPIKE, ELASTICITY_OPTIMIZATION]
+        confidence_level:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+
+    ElasticityEstimate:
+      type: object
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        discount_recovery_curve:
+          type: array
+          items:
+            type: object
+            properties:
+              discount_pct:
+                type: number
+                format: float
+              estimated_recovery_rate:
+                type: number
+                format: float
+        elasticity_coefficient:
+          type: number
+          format: float
+          description: "% recovery change per % discount change"
+        data_points:
+          type: integer
+          description: Number of experiments/observations used
+
+    CampaignResponse:
+      type: object
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        campaign_name:
+          type: string
+        campaign_type:
+          type: string
+          enum: [CHURN_INTERVENTION, CART_RECOVERY]
+        status:
+          type: string
+          enum: [CREATED, SCHEDULED, RUNNING, COMPLETED]
+        customers_targeted:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CampaignDetails:
+      type: object
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        campaign_name:
+          type: string
+        campaign_type:
+          type: string
+        status:
+          type: string
+        customers_targeted:
+          type: integer
+        customers_sent:
+          type: integer
+        intervention_type:
+          type: string
+        offer_details:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        scheduled_send_time:
+          type: string
+          format: date-time
+
+    CampaignResults:
+      type: object
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        customers_sent:
+          type: integer
+        customers_converted:
+          type: integer
+        conversion_rate:
+          type: number
+          format: float
+        revenue_recovered:
+          type: number
+          format: float
+        average_order_value:
+          type: number
+          format: float
+        discount_cost_total:
+          type: number
+          format: float
+        net_incremental_revenue:
+          type: number
+          format: float
+        roi:
+          type: number
+          format: float
+        completed_at:
+          type: string
+          format: date-time
+
+    ExperimentResponse:
+      type: object
+      properties:
+        experiment_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED]
+        treatments:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              discount_pct:
+                type: number
+                format: float
+        duration_days:
+          type: integer
+        start_date:
+          type: string
+          format: date-time
+        expected_end_date:
+          type: string
+          format: date-time
+
+    ExperimentResults:
+      type: object
+      properties:
+        experiment_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        treatment_results:
+          type: array
+          items:
+            type: object
+            properties:
+              treatment_name:
+                type: string
+              sample_size:
+                type: integer
+              conversion_rate:
+                type: number
+                format: float
+              recovery_count:
+                type: integer
+              revenue_per_conversion:
+                type: number
+                format: float
+        control_conversion_rate:
+          type: number
+          format: float
+        winner_treatment:
+          type: string
+        statistical_significance:
+          type: object
+          properties:
+            p_value:
+              type: number
+              format: float
+            confidence_interval_lower:
+              type: number
+              format: float
+            confidence_interval_upper:
+              type: number
+              format: float
+        recommendation:
+          type: string
+
+    DashboardKPIs:
+      type: object
+      properties:
+        churn_rate:
+          type: number
+          format: float
+          description: Current month churn rate
+        ltv_avg:
+          type: number
+          format: float
+        cart_recovery_rate:
+          type: number
+          format: float
+        cart_recovery_revenue:
+          type: number
+          format: float
+          description: Revenue from recovered carts this month
+        dynamic_pricing_lift_pct:
+          type: number
+          format: float
+        total_interventions_revenue:
+          type: number
+          format: float
+        total_intervention_cost:
+          type: number
+          format: float
+        total_roi:
+          type: number
+          format: float
+        period:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    UnifiedCustomerIntelligence:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        churn_profile:
+          type: object
+          properties:
+            churn_risk_score:
+              type: number
+              format: float
+            churn_tier:
+              type: string
+            top_churn_factors:
+              type: array
+              maxItems: 3
+              items:
+                $ref: '#/components/schemas/ExplainabilityFactor'
+            recommended_intervention:
+              type: string
+        ltv_profile:
+          type: object
+          properties:
+            ltv_predictions:
+              type: object
+            cohort_percentile:
+              type: number
+              format: float
+            value_drivers:
+              type: array
+              maxItems: 3
+              items:
+                $ref: '#/components/schemas/ExplainabilityFactor'
+        abandonment_history:
+          type: object
+          properties:
+            active_abandoned_carts:
+              type: integer
+            abandoned_cart_value:
+              type: number
+              format: float
+            recent_recovery_offers:
+              type: array
+              items:
+                type: object
+        pricing_sensitivity:
+          type: object
+          properties:
+            estimated_elasticity:
+              type: number
+              format: float
+            previous_discount_responses:
+              type: array
+              items:
+                type: object
+        intervention_history:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            properties:
+              campaign_id:
+                type: string
+                format: uuid
+              campaign_type:
+                type: string
+              intervention_type:
+                type: string
+              sent_at:
+                type: string
+                format: date-time
+              converted:
+                type: boolean
+        cross_module_insights:
+          type: array
+          items:
+            type: string
+            description: Insights combining multiple modules
+
+    ModelAccuracyMetrics:
+      type: object
+      properties:
+        model_name:
+          type: string
+        last_trained:
+          type: string
+          format: date-time
+        evaluation_date:
+          type: string
+          format: date-time
+        mae:
+          type: number
+          format: float
+          description: Mean Absolute Error
+        rmse:
+          type: number
+          format: float
+        calibration:
+          type: object
+          properties:
+            expected_vs_actual:
+              type: array
+              items:
+                type: object
+                properties:
+                  predicted_range:
+                    type: string
+                  actual_rate:
+                    type: number
+                    format: float
+
+    DataFreshness:
+      type: object
+      properties:
+        cassandra_last_refresh:
+          type: string
+          format: date-time
+        cassandra_age_minutes:
+          type: integer
+        iceberg_last_refresh:
+          type: string
+          format: date-time
+        iceberg_age_hours:
+          type: integer
+        churn_model_last_scored:
+          type: string
+          format: date-time
+        ltv_model_last_scored:
+          type: string
+          format: date-time
+        recovery_model_last_scored:
+          type: string
+          format: date-time
+        pricing_recommendations_last_generated:
+          type: string
+          format: date-time
+
+    ModelPerformanceDashboard:
+      type: object
+      properties:
+        churn_model:
+          type: object
+          properties:
+            auc:
+              type: number
+              format: float
+            precision:
+              type: number
+              format: float
+            recall:
+              type: number
+              format: float
+            drift_detected:
+              type: boolean
+        ltv_model:
+          type: object
+          properties:
+            mae:
+              type: number
+              format: float
+            rmse:
+              type: number
+              format: float
+            drift_detected:
+              type: boolean
+        recovery_model:
+          type: object
+          properties:
+            auc:
+              type: number
+              format: float
+            drift_detected:
+              type: boolean
+        elasticity_accuracy:
+          type: object
+          properties:
+            actual_vs_predicted_rmse:
+              type: number
+              format: float
+
+    # ========================================================================
+    # Request DTOs
+    # ========================================================================
+
+    CreateChurnCampaignRequest:
+      type: object
+      required:
+        - campaign_name
+        - customer_ids
+        - intervention_type
+      properties:
+        campaign_name:
+          type: string
+        description:
+          type: string
+        customer_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+        intervention_type:
+          type: string
+          enum: [EMAIL_OFFER, PHONE_CALL, VIP_UPGRADE, PRODUCT_RECOMMENDATION]
+        offer_discount_pct:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        offer_code:
+          type: string
+        scheduled_send_time:
+          type: string
+          format: date-time
+
+    CreateRecoveryCampaignRequest:
+      type: object
+      required:
+        - campaign_name
+        - cart_items
+        - offer_type
+      properties:
+        campaign_name:
+          type: string
+        description:
+          type: string
+        cart_items:
+          type: array
+          items:
+            type: object
+            properties:
+              customer_id:
+                type: string
+                format: uuid
+              product_id:
+                type: string
+                format: uuid
+          minItems: 1
+        offer_type:
+          type: string
+          enum: [DISCOUNT, FREE_SHIPPING, SUBSTITUTION, BUNDLE]
+        discount_pct:
+          type: number
+          format: float
+        scheduled_send_time:
+          type: string
+          format: date-time
+
+    CreatePricingExperimentRequest:
+      type: object
+      required:
+        - name
+        - treatments
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        treatments:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              discount_pct:
+                type: number
+                format: float
+        product_category:
+          type: string
+          description: Which products to test on
+        control_pct:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 0.5
+          description: Percentage of traffic to put in control group
+        duration_days:
+          type: integer
+          minimum: 1
+          maximum: 30
+
+    # ========================================================================
+    # Error Response
+    # ========================================================================
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error context
+        request_id:
+          type: string
+          description: Request ID for debugging
+        timestamp:
+          type: string
+          format: date-time
+
+  # ========================================================================
+  # Security Schemes
+  # ========================================================================
+
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication
+
+security:
+  - BearerToken: []
