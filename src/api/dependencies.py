@@ -23,10 +23,11 @@ def get_churn_service() -> ChurnService:
     feature_eng = ChurnFeatureEngineer(
         customer_dao=None,
         order_dao=None,
-        cohort_dao=None,
+        session_dao=None,
+        review_dao=None,
     )
-    model_inf = ModelInference(model_repo=None)
-    explainer = Explainer(model_inference=None)
+    model_inf = ModelInference(model_repository=None)
+    explainer = Explainer(model_repository=None)
     return ChurnService(
         feature_engineer=feature_eng,
         model_inference=model_inf,
@@ -39,10 +40,11 @@ def get_ltv_service() -> LTVService:
     feature_eng = LTVFeatureEngineer(
         customer_dao=None,
         order_dao=None,
-        cohort_dao=None,
+        customer_ltv_dao=None,
+        daily_sales_dao=None,
     )
-    model_inf = ModelInference(model_repo=None)
-    explainer = Explainer(model_inference=None)
+    model_inf = ModelInference(model_repository=None)
+    explainer = Explainer(model_repository=None)
     return LTVService(
         feature_engineer=feature_eng,
         model_inference=model_inf,
@@ -53,12 +55,13 @@ def get_ltv_service() -> LTVService:
 def get_cart_service() -> CartService:
     """Factory for CartService."""
     feature_eng = CartAbandonmentFeatureEngineer(
-        cart_dao=None,
         customer_dao=None,
-        order_dao=None,
+        cart_dao=None,
+        session_dao=None,
+        product_perf_dao=None,
     )
-    model_inf = ModelInference(model_repo=None)
-    explainer = Explainer(model_inference=None)
+    model_inf = ModelInference(model_repository=None)
+    explainer = Explainer(model_repository=None)
     return CartService(
         feature_engineer=feature_eng,
         model_inference=model_inf,
@@ -71,11 +74,12 @@ def get_pricing_service() -> PricingService:
     """Factory for PricingService."""
     feature_eng = PricingFeatureEngineer(
         product_dao=None,
+        daily_sales_dao=None,
+        product_perf_dao=None,
         competitor_dao=None,
-        inventory_dao=None,
     )
-    model_inf = ModelInference(model_repo=None)
-    explainer = Explainer(model_inference=None)
+    model_inf = ModelInference(model_repository=None)
+    explainer = Explainer(model_repository=None)
     return PricingService(
         feature_engineer=feature_eng,
         model_inference=model_inf,
