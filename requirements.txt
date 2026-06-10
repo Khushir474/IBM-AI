@@ -20,11 +20,10 @@ statsmodels==0.13.5
 
 # Async & Concurrency
 tenacity==8.2.3
-asyncio-contextmanager==1.0.0
+asyncio-contextmanager==1.0.1
 
 # Caching & Performance
 cachetools==5.3.2
-functools-lru-cache==1.6.4
 
 # Logging & Monitoring
 structlog==23.2.0

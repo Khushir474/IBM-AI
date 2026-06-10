@@ -3,6 +3,7 @@
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,8 @@ from fastapi.responses import JSONResponse
 import structlog
 
 from src.config import get_settings
+from src.models.schemas import HealthResponse, HealthDetailsResponse
+from src.api.routes import churn, ltv, carts, pricing, campaigns, dashboard
 
 # Configure structured logging
 structlog.configure(
@@ -103,17 +106,39 @@ def create_app() -> FastAPI:
             )
             raise
 
+    # Register routes
+    app.include_router(churn.router)
+    app.include_router(ltv.router)
+    app.include_router(carts.router)
+    app.include_router(pricing.router)
+    app.include_router(campaigns.router)
+    app.include_router(dashboard.router)
+
     # Health check endpoint
-    @app.get("/health")
+    @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """Health check endpoint."""
-        return {"status": "healthy", "version": app.version}
+        return HealthResponse(
+            status="healthy",
+            version=app.version,
+            timestamp=datetime.utcnow().isoformat(),
+            details=HealthDetailsResponse(
+                cassandra="ok",
+                presto="ok",
+                model_files="ok",
+                timestamp=datetime.utcnow().isoformat(),
+            ),
+        )
 
     # Readiness endpoint
     @app.get("/readiness")
     async def readiness_check():
         """Readiness check endpoint."""
-        return {"status": "ready", "version": app.version}
+        return {
+            "status": "ready",
+            "version": app.version,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
 
     # Global exception handler
     @app.exception_handler(Exception)
