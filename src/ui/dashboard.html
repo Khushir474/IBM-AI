@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECI TERMINAL</title>
+  <style>
+    :root {
+      --amber:       #ff9800;
+      --amber-bright:#ffd54f;
+      --amber-dim:   #bf6600;
+      --amber-dark:  #2d1800;
+      --bg:          #050401;
+      --bg-panel:    #090701;
+      --green:       #39ff14;
+      --red:         #ff3b3b;
+      --yellow:      #ffeb3b;
+      --border:      #3a2000;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--amber);
+      font-family: 'Courier New', Courier, 'Lucida Console', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* CRT scanlines */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent 0px, transparent 3px,
+        rgba(0,0,0,0.09) 3px, rgba(0,0,0,0.09) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* CRT vignette */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────────────── */
+    .header {
+      flex-shrink: 0;
+      background: var(--amber);
+      color: #000;
+      padding: 3px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-badge {
+      background: #000;
+      color: var(--amber);
+      padding: 0 6px;
+      font-size: 10px;
+      letter-spacing: 2px;
+    }
+
+    /* ── TICKER ─────────────────────────────────────────────────────── */
+    .ticker-bar {
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 3px 0;
+      overflow: hidden;
+      white-space: nowrap;
+      height: 24px;
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: scroll-ticker 100s linear infinite;
+      color: var(--amber-bright);
+      font-size: 12px;
+      padding-left: 100vw;
+    }
+    @keyframes scroll-ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-200%); }
+    }
+
+    /* ── STATUS LINE ────────────────────────────────────────────────── */
+    .status-line {
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-bottom: 2px solid var(--amber-dim);
+      padding: 2px 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--amber-dim);
+      gap: 8px;
+    }
+    .status-section { display: flex; align-items: center; gap: 12px; }
+
+    /* ── MAIN GRID ──────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .panel {
+      padding: 10px 14px;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+    }
+    .panel:last-child { border-right: none; }
+
+    /* ── PANEL COMPONENTS ───────────────────────────────────────────── */
+    .panel-title {
+      color: var(--amber-bright);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 3px;
+      margin-bottom: 2px;
+      text-shadow: 0 0 8px var(--amber-bright);
+    }
+    .panel-rule {
+      color: var(--amber-dark);
+      font-size: 12px;
+      margin-bottom: 5px;
+      letter-spacing: 0;
+      user-select: none;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2px 0;
+      border-bottom: 1px dotted rgba(58,32,0,0.5);
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-label {
+      color: var(--amber-dim);
+      font-size: 11px;
+      letter-spacing: 1px;
+      flex: 0 0 auto;
+      min-width: 195px;
+    }
+    .metric-label.sub {
+      padding-left: 14px;
+      min-width: 195px;
+    }
+    .metric-value {
+      font-weight: 700;
+      font-size: 13px;
+      text-align: right;
+      flex: 1;
+    }
+    .metric-value.sm { font-size: 11px; font-weight: 400; }
+    .mbar { color: var(--amber-dark); font-size: 10px; margin-left: 7px; letter-spacing: -1px; }
+    .section-gap { margin-top: 12px; }
+
+    .good  { color: var(--green); }
+    .bad   { color: var(--red); }
+    .warn  { color: var(--yellow); }
+    .neu   { color: var(--amber); }
+    .dim   { color: var(--amber-dim); }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────── */
+    .footer {
+      flex-shrink: 0;
+      background: var(--amber-dim);
+      color: #000;
+      display: flex;
+      font-size: 11px;
+      font-weight: 700;
+      align-items: stretch;
+    }
+    .fkey {
+      padding: 3px 10px;
+      cursor: pointer;
+      border-right: 1px solid rgba(0,0,0,0.35);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+    .fkey:hover { background: #000; color: var(--amber); }
+    .footer-spacer { flex: 1; }
+    .footer-right {
+      padding: 3px 10px;
+      font-weight: 400;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── ANIMATIONS ─────────────────────────────────────────────────── */
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+    .blink { animation: blink 1s step-end infinite; }
+
+    @keyframes pulse-glow {
+      0%,100% { text-shadow: 0 0 3px var(--amber); }
+      50%     { text-shadow: 0 0 14px var(--amber), 0 0 28px rgba(255,152,0,0.4); }
+    }
+    .pulse { animation: pulse-glow 4s ease-in-out infinite; }
+
+    @keyframes boot {
+      0%   { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .main, .ticker-bar, .status-line { animation: boot 0.6s ease-out; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--amber-dark); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <span>&#9654;&#9654; ECOMMERCE INTELLIGENCE TERMINAL</span>
+      <span class="header-badge">v1.0</span>
+      <span class="header-badge">IBM WXD</span>
+    </div>
+    <span id="clock" class="pulse">--:--:-- UTC</span>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <span class="ticker-inner" id="ticker-text">
+      &#9632; INITIALIZING FEED... &#9632;
+    </span>
+  </div>
+
+  <!-- STATUS LINE -->
+  <div class="status-line">
+    <div class="status-section">
+      SYS:&nbsp;<span id="sys-status" class="neu">&#9679; CONNECTING...</span>
+      &nbsp;&nbsp;
+      CASSANDRA:&nbsp;<span id="sys-cassandra" class="dim">&#9679; --</span>
+      &nbsp;
+      PRESTO:&nbsp;<span id="sys-presto" class="dim">&#9679; --</span>
+      &nbsp;
+      MODELS:&nbsp;<span id="sys-models" class="dim">&#9679; --</span>
+    </div>
+    <div class="status-section">
+      REFRESH IN: <span id="countdown" style="color:var(--amber)">30</span>s
+      &nbsp;&nbsp;
+      <span class="good blink" style="font-size:9px">&#9632;</span>&nbsp;LIVE
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ── LEFT PANEL ─────────────────────────────────────────────── -->
+    <div class="panel">
+
+      <div class="panel-title">PLATFORM KPIs</div>
+      <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+
+      <div class="metric-row">
+        <span class="metric-label">CHURN RATE</span>
+        <span class="metric-value neu" id="v-churn-rate">--%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">CHURN RATE &#916;</span>
+        <span class="metric-value neu" id="v-churn-delta">-- pp</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">AVG CUSTOMER LTV</span>
+        <span class="metric-value neu" id="v-ltv">$--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">LTV &#916; YOY</span>
+        <span class="metric-value neu" id="v-ltv-delta">--%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">CART RECOVERY RATE</span>
+        <span class="metric-value neu" id="v-cart-rate">--%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">PRICING LIFT</span>
+        <span class="metric-value neu" id="v-pricing-lift">--%</span>
+      </div>
+
+      <div class="section-gap">
+        <div class="panel-title">REVENUE &amp; ROI</div>
+        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">RECOVERY REVENUE</span>
+        <span class="metric-value good" id="v-recovery-rev">$--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">INCREMENTAL REVENUE</span>
+        <span class="metric-value good" id="v-incr-rev">$--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">INTERVENTION COST</span>
+        <span class="metric-value bad" id="v-int-cost">$--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">ROI MULTIPLIER</span>
+        <span class="metric-value" id="v-roi">--x</span>
+      </div>
+
+      <div class="section-gap">
+        <div class="panel-title">SYSTEM HEALTH</div>
+        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">API SERVER</span>
+        <span class="metric-value dim" id="h-api">&#9679; --</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">CASSANDRA</span>
+        <span class="metric-value dim" id="h-cassandra">&#9679; --</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">PRESTO</span>
+        <span class="metric-value dim" id="h-presto">&#9679; --</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">ML MODELS</span>
+        <span class="metric-value dim" id="h-models">&#9679; --</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">LAST UPDATED</span>
+        <span class="metric-value sm dim" id="h-updated">--</span>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT PANEL ────────────────────────────────────────────── -->
+    <div class="panel">
+
+      <div class="panel-title">MODEL PERFORMANCE</div>
+      <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+
+      <div class="metric-row">
+        <span class="metric-label">CHURN MODEL AUC</span>
+        <span class="metric-value" id="m-churn-auc">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; NEW CUSTOMERS</span>
+        <span class="metric-value sm dim" id="m-seg-new">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; HIGH-VALUE</span>
+        <span class="metric-value sm dim" id="m-seg-hv">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; MOBILE</span>
+        <span class="metric-value sm dim" id="m-seg-mob">--</span>
+      </div>
+
+      <div class="metric-row" style="margin-top:5px">
+        <span class="metric-label">LTV MODEL MAE</span>
+        <span class="metric-value" id="m-ltv-mae">$--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; 2024-Q1 COHORT</span>
+        <span class="metric-value sm dim" id="m-cohort-q1">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; 2024-Q2 COHORT</span>
+        <span class="metric-value sm dim" id="m-cohort-q2">--</span>
+      </div>
+
+      <div class="metric-row" style="margin-top:5px">
+        <span class="metric-label">RECOVERY MODEL AUC</span>
+        <span class="metric-value" id="m-rec-auc">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">ELASTICITY ACCURACY</span>
+        <span class="metric-value" id="m-elastic">--%</span>
+      </div>
+
+      <div class="metric-row" style="margin-top:7px">
+        <span class="metric-label">DRIFT DETECTED</span>
+        <span class="metric-value good" id="m-drift">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">LAST EVALUATED</span>
+        <span class="metric-value sm dim" id="m-eval-time">--</span>
+      </div>
+
+      <div class="section-gap">
+        <div class="panel-title">DATA FRESHNESS</div>
+        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">CASSANDRA</span>
+        <span class="metric-value" id="f-cassandra">-- min ago</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">ICEBERG / PRESTO</span>
+        <span class="metric-value" id="f-iceberg">-- hrs ago</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">CHURN SCORES</span>
+        <span class="metric-value" id="f-churn">-- hrs ago</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">LTV PREDICTIONS</span>
+        <span class="metric-value" id="f-ltv">-- hrs ago</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">PRICING RECS</span>
+        <span class="metric-value" id="f-pricing">-- hrs ago</span>
+      </div>
+      <div class="metric-row" style="margin-top:5px">
+        <span class="metric-label">OVERALL SLA</span>
+        <span class="metric-value" id="f-sla">--</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; CASSANDRA SLA</span>
+        <span class="metric-value sm dim" id="f-cassandra-sla">-- min</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label sub">&#8627; ICEBERG SLA</span>
+        <span class="metric-value sm dim" id="f-iceberg-sla">-- hrs</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="fkey" onclick="window.open('/docs','_blank')" title="Swagger API docs">F1&nbsp;API&nbsp;DOCS</span>
+    <span class="fkey" onclick="window.open('/api/v1/dashboard/summary','_blank')">F2&nbsp;KPI&nbsp;JSON</span>
+    <span class="fkey" onclick="window.open('/api/v1/models/performance','_blank')">F3&nbsp;MODELS</span>
+    <span class="fkey" onclick="window.open('/api/v1/system/data-freshness','_blank')">F4&nbsp;FRESHNESS</span>
+    <span class="fkey" onclick="window.open('/health','_blank')">F6&nbsp;HEALTH</span>
+    <span class="fkey" onclick="doRefresh()">F8&nbsp;REFRESH</span>
+    <span class="footer-spacer"></span>
+    <span class="footer-right">LAST REFRESH: <span id="last-refresh">--:--:--</span> UTC</span>
+  </div>
+
+<script>
+  // ── Utility ────────────────────────────────────────────────────────────
+  function bar(val, max, len) {
+    len = len || 10;
+    var filled = Math.min(len, Math.max(0, Math.round((val / max) * len)));
+    var b = '';
+    for (var i = 0; i < filled; i++) b += '█';
+    for (var i = filled; i < len; i++) b += '░';
+    return b;
+  }
+
+  function fmt(v, decimals) {
+    decimals = decimals === undefined ? 1 : decimals;
+    if (v === null || v === undefined) return '--';
+    return (+v).toFixed(decimals);
+  }
+
+  function fmtMoney(v) {
+    if (v === null || v === undefined) return '--';
+    if (v >= 1000000) return '$' + (v/1000000).toFixed(2) + 'M';
+    if (v >= 1000)    return '$' + (v/1000).toFixed(0) + 'K';
+    return '$' + v.toFixed(0);
+  }
+
+  function fmtTs(iso) {
+    if (!iso) return '--';
+    return iso.replace('T',' ').split('.')[0] + ' UTC';
+  }
+
+  function setEl(id, html, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    // Use textContent for plain text, innerHTML for html with spans
+    el.innerHTML = html;
+    if (cls) {
+      el.className = el.className.replace(/\b(good|bad|warn|neu|dim)\b/g,'').trim();
+      el.classList.add(cls);
+    }
+  }
+
+  function span(text, cls) {
+    return '<span class="' + cls + '">' + text + '</span>';
+  }
+
+  // ── Clock ──────────────────────────────────────────────────────────────
+  function updateClock() {
+    var now = new Date();
+    var h = now.getUTCHours().toString().padStart(2,'0');
+    var m = now.getUTCMinutes().toString().padStart(2,'0');
+    var s = now.getUTCSeconds().toString().padStart(2,'0');
+    document.getElementById('clock').textContent = h+':'+m+':'+s+' UTC';
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── Countdown ─────────────────────────────────────────────────────────
+  var countdownVal = 30;
+  var countdownTimer = null;
+
+  function startCountdown() {
+    clearInterval(countdownTimer);
+    countdownVal = 30;
+    countdownTimer = setInterval(function() {
+      countdownVal--;
+      var el = document.getElementById('countdown');
+      if (el) el.textContent = countdownVal;
+      if (countdownVal <= 0) doRefresh();
+    }, 1000);
+  }
+
+  // ── Health ────────────────────────────────────────────────────────────
+  function fetchHealth() {
+    return fetch('/health').then(function(r) { return r.json(); }).then(function(d) {
+      var ok = d.status === 'healthy';
+      var cc = ok ? 'good' : (d.status === 'degraded' ? 'warn' : 'bad');
+      setEl('sys-status', '● ' + d.status.toUpperCase(), cc);
+
+      var det = d.details || {};
+      var cassOk = det.cassandra === 'ok';
+      var prestoOk = det.presto === 'ok';
+      var modelOk = det.model_files === 'ok';
+
+      setEl('sys-cassandra',  span('● '+(det.cassandra||'--').toUpperCase(), cassOk?'good':'bad'));
+      setEl('sys-presto',     span('● '+(det.presto||'--').toUpperCase(),    prestoOk?'good':'bad'));
+      setEl('sys-models',     span('● '+(det.model_files||'--').toUpperCase(), modelOk?'good':'bad'));
+      setEl('h-api',          span('● '+d.status.toUpperCase(),  ok?'good':'bad'));
+      setEl('h-cassandra',    span('● '+(det.cassandra||'--').toUpperCase(), cassOk?'good':'bad'));
+      setEl('h-presto',       span('● '+(det.presto||'--').toUpperCase(),    prestoOk?'good':'bad'));
+      setEl('h-models',       span('● '+(det.model_files||'--').toUpperCase(), modelOk?'good':'bad'));
+      if (det.timestamp) setEl('h-updated', fmtTs(det.timestamp), 'dim');
+    }).catch(function() {
+      setEl('sys-status', span('● UNREACHABLE', 'bad'));
+    });
+  }
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  var lastKPIs = null;
+
+  function fetchKPIs() {
+    return fetch('/api/v1/dashboard/summary').then(function(r) { return r.json(); }).then(function(d) {
+      lastKPIs = d;
+
+      setEl('v-churn-rate', fmt(d.churn_rate,1)+'%', 'neu');
+
+      var cd = d.churn_rate_change;
+      var cdStr = (cd > 0 ? '▲ +' : '▼ ') + fmt(Math.abs(cd),2) + ' pp';
+      setEl('v-churn-delta', cdStr, cd > 0 ? 'bad' : 'good');
+
+      setEl('v-ltv', fmtMoney(d.avg_ltv), 'neu');
+
+      var ld = d.ltv_change_pct;
+      var ldStr = (ld > 0 ? '▲ +' : '▼ ') + fmt(Math.abs(ld),2) + '%';
+      setEl('v-ltv-delta', ldStr, ld > 0 ? 'good' : 'bad');
+
+      setEl('v-cart-rate',    fmt(d.cart_recovery_rate,1)+'%', 'neu');
+      setEl('v-pricing-lift', (d.pricing_lift_pct>0?'+':'')+fmt(d.pricing_lift_pct,1)+'%', 'neu');
+
+      setEl('v-recovery-rev', fmtMoney(d.cart_recovery_revenue), 'good');
+      setEl('v-incr-rev',     fmtMoney(d.total_incremental_revenue), 'good');
+      setEl('v-int-cost',     fmtMoney(d.total_interventions_cost), 'bad');
+
+      var roi = d.roi_multiplier;
+      var roiCls = roi >= 3 ? 'good' : (roi >= 1.5 ? 'neu' : 'bad');
+      var roiBar = bar(Math.min(roi, 10), 10);
+      setEl('v-roi', span(fmt(roi,1)+'x', roiCls) + ' <span class="mbar">'+roiBar+'</span>');
+
+      updateTicker(d);
+    }).catch(function(e) {
+      console.error('KPI fetch failed', e);
+    });
+  }
+
+  // ── Models ────────────────────────────────────────────────────────────
+  function fetchModels() {
+    return fetch('/api/v1/models/performance').then(function(r) { return r.json(); }).then(function(d) {
+      var ca = d.churn_model_auc;
+      setEl('m-churn-auc',
+        span(fmt(ca,3), ca>=0.8?'good':'warn') + ' <span class="mbar">'+bar(ca,1)+'</span>');
+
+      var segs = d.churn_model_auc_by_segment || [];
+      function findSeg(name) {
+        for (var i=0; i<segs.length; i++) if(segs[i].segment_name===name) return segs[i].accuracy_metric;
+        return null;
+      }
+      var sn = findSeg('new_customers');
+      var sv = findSeg('high_value');
+      var sm = findSeg('mobile');
+      setEl('m-seg-new', sn!==null ? fmt(sn,3) : '--', 'dim');
+      setEl('m-seg-hv',  sv!==null ? fmt(sv,3) : '--', 'dim');
+      setEl('m-seg-mob', sm!==null ? fmt(sm,3) : '--', 'dim');
+
+      var ltv = d.ltv_model_mae;
+      setEl('m-ltv-mae',
+        span('$'+fmt(ltv,1), ltv<=50?'good':'warn') + ' <span class="mbar">'+bar(1-(ltv/100),1)+'</span>');
+
+      var cohorts = d.ltv_model_mae_by_cohort || [];
+      function findCohort(name) {
+        for (var i=0; i<cohorts.length; i++) if(cohorts[i].segment_name===name) return cohorts[i].accuracy_metric;
+        return null;
+      }
+      var q1 = findCohort('2024_q1');
+      var q2 = findCohort('2024_q2');
+      setEl('m-cohort-q1', q1!==null ? '$'+fmt(q1,1) : '--', 'dim');
+      setEl('m-cohort-q2', q2!==null ? '$'+fmt(q2,1) : '--', 'dim');
+
+      var ra = d.recovery_model_auc;
+      setEl('m-rec-auc',
+        span(fmt(ra,3), ra>=0.75?'good':'warn') + ' <span class="mbar">'+bar(ra,1)+'</span>');
+
+      var el = d.elasticity_accuracy;
+      setEl('m-elastic',
+        span(fmt(el,1)+'%', el>=85?'good':'warn') + ' <span class="mbar">'+bar(el,100)+'</span>');
+
+      var drift = d.drift_detected;
+      setEl('m-drift',
+        drift ? ('⚠ ' + (d.drift_alert_msg||'DRIFT DETECTED')) : '✓ NO DRIFT',
+        drift ? 'bad' : 'good');
+
+      setEl('m-eval-time', fmtTs(d.last_evaluated_iso), 'dim');
+    }).catch(function(e) {
+      console.error('Models fetch failed', e);
+    });
+  }
+
+  // ── Freshness ─────────────────────────────────────────────────────────
+  function fetchFreshness() {
+    return fetch('/api/v1/system/data-freshness').then(function(r) { return r.json(); }).then(function(d) {
+      var cassMin = d.cassandra_last_refresh_minutes_ago;
+      var cassSla = d.cassandra_sla_minutes;
+      var cassOk  = cassMin <= cassSla;
+      setEl('f-cassandra',
+        span(cassMin+' min ago  '+( cassOk?'● OK':'● STALE'), cassOk?'good':'bad'));
+
+      var iceHrs = d.iceberg_last_refresh_hours_ago;
+      var iceSla  = d.iceberg_sla_hours;
+      var iceOk   = iceHrs <= iceSla;
+      setEl('f-iceberg',
+        span(iceHrs+' hrs ago  '+(iceOk?'● OK':'● STALE'), iceOk?'good':'bad'));
+
+      setEl('f-churn',   d.churn_scores_last_computed_hours_ago  + ' hrs ago', 'neu');
+      setEl('f-ltv',     d.ltv_predictions_last_computed_hours_ago + ' hrs ago', 'neu');
+      setEl('f-pricing', d.pricing_recommendations_last_computed_hours_ago + ' hrs ago', 'neu');
+
+      var sla = d.within_sla;
+      setEl('f-sla', sla ? '✓ WITHIN SLA' : '⚠ SLA BREACH', sla?'good':'bad');
+      setEl('f-cassandra-sla', 'THRESHOLD: '+cassSla+' min', 'dim');
+      setEl('f-iceberg-sla',   'THRESHOLD: '+iceSla+' hrs', 'dim');
+    }).catch(function(e) {
+      console.error('Freshness fetch failed', e);
+    });
+  }
+
+  // ── Ticker ────────────────────────────────────────────────────────────
+  function updateTicker(d) {
+    var churnDir = d.churn_rate_change > 0 ? '▲' : '▼';
+    var ltvDir   = d.ltv_change_pct > 0   ? '▲' : '▼';
+    var parts = [
+      '■ CHURN RATE: ' + fmt(d.churn_rate,1) + '% ' + churnDir,
+      '■ AVG LTV: ' + fmtMoney(d.avg_ltv) + ' ' + ltvDir,
+      '■ CART RECOVERY: ' + fmt(d.cart_recovery_rate,1) + '%',
+      '■ PRICING LIFT: +' + fmt(d.pricing_lift_pct,1) + '%',
+      '■ ROI: ' + fmt(d.roi_multiplier,1) + 'x',
+      '■ INCREMENTAL REV: ' + fmtMoney(d.total_incremental_revenue),
+      '■ RECOVERY REV: ' + fmtMoney(d.cart_recovery_revenue),
+      '■ INTERVENTION COST: ' + fmtMoney(d.total_interventions_cost),
+    ];
+    var el = document.getElementById('ticker-text');
+    if (el) el.textContent = '   ' + parts.join('   ') + '   ';
+  }
+
+  // ── Last refresh ──────────────────────────────────────────────────────
+  function setLastRefresh() {
+    var now = new Date();
+    var h = now.getUTCHours().toString().padStart(2,'0');
+    var m = now.getUTCMinutes().toString().padStart(2,'0');
+    var s = now.getUTCSeconds().toString().padStart(2,'0');
+    var el = document.getElementById('last-refresh');
+    if (el) el.textContent = h+':'+m+':'+s;
+  }
+
+  // ── Main refresh ──────────────────────────────────────────────────────
+  function doRefresh() {
+    Promise.all([
+      fetchHealth(),
+      fetchKPIs(),
+      fetchModels(),
+      fetchFreshness(),
+    ]).then(function() {
+      setLastRefresh();
+      startCountdown();
+    });
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'F5' || e.key === 'F8') { e.preventDefault(); doRefresh(); }
+    if (e.key === 'F1') { e.preventDefault(); window.open('/docs','_blank'); }
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────
+  doRefresh();
+</script>
+</body>
+</html>

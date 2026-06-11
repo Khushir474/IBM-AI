@@ -2,14 +2,17 @@
 
 import asyncio
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import structlog
+
+_DASHBOARD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ui", "dashboard.html")
 
 from src.config import get_settings
 from src.models.schemas import HealthResponse, HealthDetailsResponse
@@ -166,6 +169,13 @@ def create_app() -> FastAPI:
     app.include_router(pricing.router)
     app.include_router(campaigns.router)
     app.include_router(dashboard.router)
+
+    # Bloomberg-style terminal dashboard
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def serve_dashboard():
+        """Serve the terminal intelligence dashboard."""
+        with open(_DASHBOARD_PATH, "r") as f:
+            return HTMLResponse(content=f.read())
 
     # Health check endpoint
     @app.get("/health", response_model=HealthResponse)
