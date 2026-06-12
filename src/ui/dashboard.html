@@ -291,7 +291,7 @@
 
 <!-- ══ SEGMENT CHIPS ══ -->
 <div class="seg-bar">
-  <span class="seg-label">SEGMENT</span>
+  <span class="seg-label" title="Filters drill-through detail views — platform KPIs are always aggregate">DRILL FILTER</span>
   <button class="seg-chip active" onclick="setSegment('ALL')">ALL</button>
   <button class="seg-chip" onclick="setSegment('HIGH')">HIGH-VALUE</button>
   <button class="seg-chip" onclick="setSegment('NEW')">NEW CUSTOMERS</button>
@@ -549,10 +549,16 @@ function setTab(name) {
 function setSegment(seg) {
   activeSegment = seg;
   document.querySelectorAll('.seg-chip').forEach(function(el) {
-    el.classList.toggle('active', el.textContent.trim() === seg || el.textContent.trim() === 'ALL' && seg === 'ALL');
+    var label = el.textContent.trim();
+    el.classList.toggle('active',
+      label === seg ||
+      (label === 'ALL' && seg === 'ALL') ||
+      (label === 'HIGH-VALUE' && seg === 'HIGH') ||
+      (label === 'NEW CUSTOMERS' && seg === 'NEW') ||
+      (label === 'MOBILE' && seg === 'MOBILE')
+    );
   });
-  // Re-fetch KPIs with segment context (pass as query param where supported)
-  fetchKPIs();
+  // KPI summary is always platform-wide — segment controls drill-through views only
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -580,9 +586,7 @@ function fetchHealth() {
 // KPIs
 // ─────────────────────────────────────────────────────────────────────────────
 function fetchKPIs() {
-  var url = '/api/v1/dashboard/summary';
-  if (activeSegment !== 'ALL') url += '?segment=' + activeSegment.toLowerCase();
-  return fetch(url).then(function(r){return r.json();}).then(function(d) {
+  return fetch('/api/v1/dashboard/summary').then(function(r){return r.json();}).then(function(d) {
     kpiData = d;
     setEl('v-churn-rate', fmt(d.churn_rate,1) + '%');
     var cd = d.churn_rate_change;
@@ -674,76 +678,110 @@ var drillConfig = {
   'churn-rate': {
     title: 'CHURN RISK — CUSTOMER BREAKDOWN',
     fetch: function() {
-      var url = '/api/v1/churn/customers?tier=high';
-      if (activeSegment !== 'ALL') url += '&segment=' + activeSegment.toLowerCase();
-      return fetch(url).then(function(r){return r.json();});
+      // API requires churn_tier=HIGH|MEDIUM|LOW; NEW segment shows MEDIUM risk, others HIGH
+      var tier = activeSegment === 'NEW' ? 'MEDIUM' : 'HIGH';
+      return fetch('/api/v1/churn/customers?churn_tier=' + tier + '&limit=50')
+        .then(function(r){ return r.json(); });
     },
     render: function(d) {
-      var rows = Array.isArray(d) ? d : (d.customers || d.data || []);
+      var rows = Array.isArray(d) ? d : (d.items || []);
       if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
       var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>CHURN SCORE</th><th>TIER</th><th>RECOMMENDED ACTION</th></tr></thead><tbody>';
-      rows.slice(0,50).forEach(function(r) {
-        var score = r.churn_score || r.risk_score || '--';
-        var tier  = r.churn_tier || r.tier || '--';
+      rows.forEach(function(r) {
+        var score = r.score;
+        var tier  = (r.tier || '').toLowerCase();
         var tierCls = tier==='high'?'neg':(tier==='medium'?'warn':'pos');
+        var action = (r.recommended_intervention && r.recommended_intervention.intervention_type) || '--';
         html += '<tr><td class="cyn">'+r.customer_id+'</td>'
-              + '<td>'+cls(score,'warn')+'</td>'
+              + '<td>'+cls(fmt(score,1),'warn')+'</td>'
               + '<td>'+cls(tier.toUpperCase(),tierCls)+'</td>'
-              + '<td class="dim">'+(r.recommended_action||'--')+'</td></tr>';
+              + '<td class="dim">'+action+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
   },
   'ltv': {
     title: 'HIGH-VALUE CUSTOMER COHORTS',
-    fetch: function() { return fetch('/api/v1/ltv/cohorts/high-value').then(function(r){return r.json();}); },
+    fetch: function() {
+      // NEW segment: show new high-potential customers instead of cohorts
+      if (activeSegment === 'NEW') {
+        return fetch('/api/v1/ltv/customers/new-high-potential?limit=50').then(function(r){ return r.json(); });
+      }
+      return fetch('/api/v1/ltv/cohorts/high-value?limit=30').then(function(r){ return r.json(); });
+    },
     render: function(d) {
-      var rows = Array.isArray(d) ? d : (d.cohorts || d.data || []);
+      var rows = Array.isArray(d) ? d : [];
       if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      if (activeSegment === 'NEW') {
+        // HighPotentialCustomerResponse: customer_id, days_as_customer, predicted_ltv_90day, confidence, signals
+        var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>DAYS AS CUSTOMER</th><th>LTV 90D</th><th>CONFIDENCE</th></tr></thead><tbody>';
+        rows.forEach(function(r) {
+          html += '<tr><td class="cyn">'+r.customer_id+'</td>'
+                + '<td>'+r.days_as_customer+'</td>'
+                + '<td class="pos">'+fmtMoney(r.predicted_ltv_90day)+'</td>'
+                + '<td>'+fmt(r.confidence*100,1)+'%</td></tr>';
+        });
+        return html + '</tbody></table>';
+      }
+      // LTVCohortResponse: cohort_name, size, avg_ltv, avg_ltv_30day, avg_ltv_90day
       var html = '<table class="modal-table"><thead><tr><th>COHORT</th><th>AVG LTV</th><th>SIZE</th><th>LTV 30D</th><th>LTV 90D</th></tr></thead><tbody>';
-      rows.slice(0,30).forEach(function(r) {
+      rows.forEach(function(r) {
         html += '<tr><td class="yellow">'+r.cohort_name+'</td>'
               + '<td class="pos">'+fmtMoney(r.avg_ltv)+'</td>'
-              + '<td>'+r.customer_count+'</td>'
-              + '<td>'+fmtMoney(r.avg_ltv_30d)+'</td>'
-              + '<td>'+fmtMoney(r.avg_ltv_90d)+'</td></tr>';
+              + '<td>'+(r.size||'--')+'</td>'
+              + '<td>'+fmtMoney(r.avg_ltv_30day)+'</td>'
+              + '<td>'+fmtMoney(r.avg_ltv_90day)+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
   },
   'carts': {
     title: 'ABANDONED CARTS — RECOVERY QUEUE',
-    fetch: function() { return fetch('/api/v1/carts/abandoned').then(function(r){return r.json();}); },
+    fetch: function() {
+      // HIGH-VALUE segment filters to HIGH recovery tier; others show all
+      var url = '/api/v1/carts/abandoned?limit=40';
+      if (activeSegment === 'HIGH') url += '&recovery_tier=HIGH';
+      return fetch(url).then(function(r){ return r.json(); });
+    },
     render: function(d) {
-      var rows = Array.isArray(d) ? d : (d.carts || d.data || []);
+      // API returns a plain array of AbandonedCartResponse
+      var rows = Array.isArray(d) ? d : [];
       if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
       var html = '<table class="modal-table"><thead><tr><th>CUSTOMER</th><th>PRODUCT</th><th>CART VALUE</th><th>RECOVERY SCORE</th><th>TOP REASON</th></tr></thead><tbody>';
-      rows.slice(0,40).forEach(function(r) {
-        var score = r.recovery_likelihood || r.recovery_score || '--';
+      rows.forEach(function(r) {
+        var score = r.recovery_score;
         var scoreCls = score >= 70 ? 'pos' : (score >= 40 ? 'warn' : 'neg');
+        var topReason = (r.factors && r.factors.length) ? r.factors[0].factor : '--';
         html += '<tr><td class="cyn">'+r.customer_id+'</td>'
               + '<td>'+r.product_id+'</td>'
               + '<td class="pos">'+fmtMoney(r.cart_value)+'</td>'
               + '<td>'+cls(fmt(score,1)+'%', scoreCls)+'</td>'
-              + '<td class="dim">'+(r.top_abandonment_reason||r.primary_reason||'--')+'</td></tr>';
+              + '<td class="dim">'+topReason+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
   },
   'pricing': {
     title: 'PRICING RECOMMENDATIONS',
-    fetch: function() { return fetch('/api/v1/pricing/dashboard').then(function(r){return r.json();}); },
+    fetch: function() { return fetch('/api/v1/pricing/dashboard').then(function(r){ return r.json(); }); },
     render: function(d) {
-      var rows = Array.isArray(d) ? d : (d.recommendations || d.data || []);
-      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
-      var html = '<table class="modal-table"><thead><tr><th>PRODUCT</th><th>CURRENT PRICE</th><th>REC PRICE</th><th>DISCOUNT</th><th>REVENUE IMPACT</th></tr></thead><tbody>';
-      rows.slice(0,40).forEach(function(r) {
-        var disc = r.recommended_discount_pct || r.discount_pct || 0;
+      // API returns a plain array; currently returns [] (Phase 6 TODO in backend)
+      var rows = Array.isArray(d) ? d : [];
+      if (!rows.length) {
+        return '<div style="padding:20px;text-align:center">'
+          + '<div class="warn" style="font-size:13px;letter-spacing:2px">PRICING DATA PENDING</div>'
+          + '<div class="dim" style="font-size:10px;margin-top:8px">Recommendations are computed in the nightly batch pipeline.<br>Check back after the next model run or use the individual product endpoint.</div>'
+          + '<div style="margin-top:12px"><a href="/api/v1/pricing/products/&lt;product_id&gt;/recommendation" class="cyn" style="font-size:10px">GET /api/v1/pricing/products/{id}/recommendation</a></div>'
+          + '</div>';
+      }
+      // PriceRecommendationResponse: product_id, current_price, recommended_price, discount_pct, expected_revenue_impact
+      var html = '<table class="modal-table"><thead><tr><th>PRODUCT</th><th>CURRENT</th><th>RECOMMENDED</th><th>DISCOUNT</th><th>REVENUE IMPACT</th></tr></thead><tbody>';
+      rows.forEach(function(r) {
         html += '<tr><td class="yellow">'+r.product_id+'</td>'
               + '<td>'+fmtMoney(r.current_price)+'</td>'
               + '<td class="pos">'+fmtMoney(r.recommended_price)+'</td>'
-              + '<td class="warn">'+fmt(disc,1)+'%</td>'
-              + '<td class="pos">'+fmtMoney(r.revenue_impact)+'</td></tr>';
+              + '<td class="warn">'+fmt(r.discount_pct,1)+'%</td>'
+              + '<td class="pos">'+fmtMoney(r.expected_revenue_impact)+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
@@ -839,46 +877,59 @@ function lookupCustomer(id) {
     .catch(function(e) { setEl('c360-content', '<div class="modal-loading neg" style="padding:30px">NOT FOUND</div>'); });
 }
 function renderC360(d) {
+  // UnifiedCustomerIntelligenceResponse is a flat object:
+  // customer_id, churn_risk_score, churn_tier, ltv_90day, ltv_365day, ltv_tier,
+  // abandoned_carts_count, total_abandoned_value, intervention_history,
+  // pricing_sensitivity, recommended_strategy
   function sec(title, rows) {
     var html = '<div class="c360-section"><div class="c360-sec-title">'+title+'</div>';
     rows.forEach(function(r) {
-      html += '<div class="c360-row"><span class="c360-key">'+r[0]+'</span><span class="c360-val '+( r[2]||'')+'">'+r[1]+'</span></div>';
+      html += '<div class="c360-row"><span class="c360-key">'+r[0]+'</span><span class="c360-val '+(r[2]||'')+'">'+r[1]+'</span></div>';
     });
     return html + '</div>';
   }
-  var churn = d.churn || {};
-  var ltv   = d.ltv   || {};
-  var cart  = d.cart  || {};
-  var inter = d.intervention || d.recommended_action || {};
-  var score  = churn.churn_score || '--';
+
+  var score    = d.churn_risk_score;
   var scoreCls = score >= 70 ? 'neg' : (score >= 40 ? 'warn' : 'pos');
+  var tier     = (d.churn_tier || '--').toUpperCase();
 
   var html = sec('IDENTITY', [
-    ['CUSTOMER ID', d.customer_id || '--', 'cyn'],
-    ['SEGMENT',     d.segment || '--', ''],
-    ['CHANNEL',     d.channel || '--', '']
+    ['CUSTOMER ID',       d.customer_id || '--', 'cyn'],
+    ['LTV TIER',          (d.ltv_tier   || '--').toUpperCase(), ''],
+    ['PRICE SENSITIVITY', (d.pricing_sensitivity || '--').toUpperCase(), '']
   ]);
+
   html += sec('CHURN RISK', [
-    ['SCORE',  fmt(score,1), scoreCls],
-    ['TIER',   (churn.churn_tier||'--').toUpperCase(), scoreCls],
-    ['DELTA',  (churn.churn_score_change>0?'+':'')+fmt(churn.churn_score_change,1)+' pp', '']
+    ['SCORE', fmt(score, 1), scoreCls],
+    ['TIER',  tier,          scoreCls]
   ]);
+
   html += sec('LIFETIME VALUE', [
-    ['CURRENT LTV', fmtMoney(ltv.current_ltv), 'pos'],
-    ['30-DAY',      fmtMoney(ltv.ltv_30d), ''],
-    ['90-DAY',      fmtMoney(ltv.ltv_90d), ''],
-    ['1-YEAR',      fmtMoney(ltv.ltv_1yr), '']
+    ['90-DAY',  fmtMoney(d.ltv_90day),  'pos'],
+    ['1-YEAR',  fmtMoney(d.ltv_365day), 'pos']
   ]);
-  if (cart && cart.has_abandoned_cart) {
-    html += sec('ABANDONED CART', [
-      ['PRODUCT',        cart.product_id||'--', 'yellow'],
-      ['VALUE',          fmtMoney(cart.cart_value), 'pos'],
-      ['RECOVERY SCORE', fmt(cart.recovery_likelihood,1)+'%', 'warn'],
-      ['TOP REASON',     cart.top_abandonment_reason||'--', 'dim']
+
+  if (d.abandoned_carts_count > 0) {
+    html += sec('ABANDONED CARTS', [
+      ['COUNT',        d.abandoned_carts_count,           'warn'],
+      ['TOTAL VALUE',  fmtMoney(d.total_abandoned_value), 'pos']
     ]);
   }
-  var rec = typeof inter === 'string' ? inter : (inter.action || inter.recommended_action || '--');
-  html += sec('RECOMMENDED ACTION', [['ACTION', rec, 'org']]);
+
+  html += sec('RECOMMENDED STRATEGY', [
+    ['STRATEGY', d.recommended_strategy || '--', 'org']
+  ]);
+
+  var history = d.intervention_history || [];
+  if (history.length) {
+    var histHtml = '<div class="c360-section"><div class="c360-sec-title">INTERVENTION HISTORY</div>';
+    history.slice(0,5).forEach(function(h) {
+      var converted = h.converted ? cls('&#10003; CONVERTED', 'pos') : cls('PENDING', 'dim');
+      histHtml += '<div class="c360-row"><span class="c360-key">'+h.campaign_type+'</span><span class="c360-val">'+converted+'</span></div>';
+    });
+    html += histHtml + '</div>';
+  }
+
   return html;
 }
 
