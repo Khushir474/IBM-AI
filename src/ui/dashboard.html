@@ -23,7 +23,7 @@
     body {
       background:var(--black); color:var(--white);
       font-family:'Courier New',Courier,'Lucida Console',monospace;
-      font-size:12px; line-height:1.45;
+      font-size:14px; line-height:1.55;
       display:flex; flex-direction:column;
     }
     body::before {
@@ -35,14 +35,14 @@
     /* ── HEADER ── */
     .header {
       flex-shrink:0; background:var(--orange); color:#000;
-      padding:0; display:flex; font-weight:700; font-size:13px;
+      padding:0; display:flex; font-weight:700; font-size:15px;
     }
-    .header-left { padding:4px 10px; display:flex; align-items:center; gap:0; flex:1; }
+    .header-left { padding:5px 12px; display:flex; align-items:center; gap:0; flex:1; }
     .header-title { letter-spacing:2px; }
-    .header-sep { background:rgba(0,0,0,0.25); padding:4px 8px; margin:0 8px; font-size:10px; letter-spacing:1px; }
+    .header-sep { background:rgba(0,0,0,0.25); padding:5px 10px; margin:0 8px; font-size:12px; letter-spacing:1px; }
     .header-right {
-      background:#000; color:var(--orange); padding:4px 12px;
-      font-size:13px; font-weight:700; letter-spacing:1px;
+      background:#000; color:var(--orange); padding:5px 14px;
+      font-size:15px; font-weight:700; letter-spacing:1px;
       display:flex; align-items:center; gap:16px;
     }
     .header-clock { color:var(--yellow); }
@@ -51,9 +51,9 @@
     .ticker-bar {
       flex-shrink:0; background:#0a0a0a;
       border-top:1px solid var(--orange); border-bottom:1px solid var(--grey-dim);
-      padding:2px 0; overflow:hidden; white-space:nowrap; height:22px;
+      padding:3px 0; overflow:hidden; white-space:nowrap; height:26px;
     }
-    .ticker-inner { display:inline-block; animation:scroll-ticker 110s linear infinite; font-size:11px; padding-left:100vw; letter-spacing:0.5px; }
+    .ticker-inner { display:inline-block; animation:scroll-ticker 110s linear infinite; font-size:13px; padding-left:100vw; letter-spacing:0.5px; }
     .ticker-pos { color:var(--green); } .ticker-neg { color:var(--red); }
     .ticker-sep { color:var(--grey); margin:0 10px; }
     .ticker-lbl { color:var(--yellow); } .ticker-val { color:var(--white); }
@@ -62,19 +62,19 @@
     /* ── STATUS + SEGMENT BAR ── */
     .status-line {
       flex-shrink:0; background:#080808; border-bottom:1px solid var(--grey-dim);
-      padding:2px 10px; display:flex; justify-content:space-between; align-items:center; font-size:11px;
+      padding:3px 12px; display:flex; justify-content:space-between; align-items:center; font-size:13px;
     }
-    .status-group { display:flex; align-items:center; gap:14px; }
-    .status-chip { display:flex; align-items:center; gap:4px; letter-spacing:0.5px; }
+    .status-group { display:flex; align-items:center; gap:16px; }
+    .status-chip { display:flex; align-items:center; gap:5px; letter-spacing:0.5px; }
     .status-label { color:var(--grey); }
 
     .seg-bar {
       flex-shrink:0; background:#050505; border-bottom:2px solid var(--orange);
-      padding:3px 10px; display:flex; align-items:center; gap:8px;
+      padding:4px 12px; display:flex; align-items:center; gap:10px;
     }
-    .seg-label { color:var(--grey); font-size:10px; letter-spacing:1px; margin-right:4px; }
+    .seg-label { color:var(--grey); font-size:12px; letter-spacing:1px; margin-right:4px; }
     .seg-chip {
-      padding:2px 10px; font-size:10px; font-weight:700; letter-spacing:1.5px;
+      padding:3px 12px; font-size:12px; font-weight:700; letter-spacing:1.5px;
       border:1px solid var(--grey-dim); background:transparent; color:var(--grey);
       cursor:pointer; transition:all 0.15s;
     }
@@ -84,10 +84,10 @@
     /* ── TAB BAR ── */
     .tab-bar {
       flex-shrink:0; background:#080808; border-bottom:1px solid var(--grey-dim);
-      display:flex; align-items:stretch; font-size:11px;
+      display:flex; align-items:stretch; font-size:13px;
     }
     .tab {
-      padding:3px 16px; cursor:pointer; color:var(--grey); letter-spacing:1px;
+      padding:4px 18px; cursor:pointer; color:var(--grey); letter-spacing:1px;
       border-right:1px solid var(--grey-dim); font-weight:700;
     }
     .tab:hover { color:var(--white); }
@@ -111,33 +111,33 @@
     #graph-canvas:active { cursor:grabbing; }
     .graph-legend {
       flex-shrink:0; background:#050505; border-top:1px solid var(--grey-dim);
-      padding:4px 12px; display:flex; gap:20px; align-items:center; font-size:10px;
+      padding:5px 14px; display:flex; gap:20px; align-items:center; font-size:12px;
     }
     .legend-item { display:flex; align-items:center; gap:5px; }
     .legend-dot { width:8px; height:8px; border-radius:50%; }
 
     /* ── SECTION HEADER ── */
     .sec-head { display:flex; align-items:center; gap:0; margin-bottom:4px; margin-top:2px; }
-    .sec-tag { background:var(--orange); color:#000; font-weight:700; font-size:10px; letter-spacing:2px; padding:1px 6px; }
+    .sec-tag { background:var(--orange); color:#000; font-weight:700; font-size:11px; letter-spacing:2px; padding:2px 8px; }
     .sec-line { flex:1; height:1px; background:var(--grey-dim); margin-left:6px; }
 
     /* ── METRIC ROWS ── */
     .metric-row {
       display:flex; justify-content:space-between; align-items:baseline;
-      padding:2px 2px; border-bottom:1px solid #111; cursor:pointer; transition:background 0.1s;
+      padding:4px 4px; border-bottom:1px solid #111; cursor:pointer; transition:background 0.1s;
     }
     .metric-row:hover { background:#111; }
     .metric-row:last-child { border-bottom:none; }
     .metric-row.no-drill { cursor:default; }
     .metric-row.no-drill:hover { background:transparent; }
-    .drill-hint { color:var(--grey-dim); font-size:9px; margin-left:4px; }
+    .drill-hint { color:var(--grey-dim); font-size:11px; margin-left:4px; }
 
-    .ml { color:var(--yellow); font-size:11px; letter-spacing:0.5px; flex:0 0 auto; min-width:190px; }
-    .ml.sub { color:var(--grey); padding-left:12px; min-width:190px; font-size:10px; }
-    .mv { font-weight:700; font-size:12px; text-align:right; flex:1; color:var(--white); }
-    .mv.sm { font-size:10px; font-weight:400; color:var(--grey); }
-    .mv.lg { font-size:14px; }
-    .mbar { color:#2a4a2a; font-size:10px; margin-left:6px; letter-spacing:-1px; }
+    .ml { color:var(--yellow); font-size:13px; letter-spacing:0.5px; flex:0 0 auto; min-width:210px; }
+    .ml.sub { color:var(--grey); padding-left:14px; min-width:210px; font-size:12px; }
+    .mv { font-weight:700; font-size:14px; text-align:right; flex:1; color:var(--white); }
+    .mv.sm { font-size:12px; font-weight:400; color:var(--grey); }
+    .mv.lg { font-size:16px; }
+    .mbar { color:#2a4a2a; font-size:12px; margin-left:6px; letter-spacing:-1px; }
     .mbar-fill { color:var(--green); }
 
     .pos  { color:var(--green)  !important; }
@@ -148,7 +148,7 @@
     .dim  { color:var(--grey)   !important; }
     .gap  { margin-top:10px; }
 
-    .badge { display:inline-block; padding:0 5px; font-size:10px; font-weight:700; letter-spacing:1px; }
+    .badge { display:inline-block; padding:1px 6px; font-size:11px; font-weight:700; letter-spacing:1px; }
     .badge-green { background:var(--green);  color:#000; }
     .badge-red   { background:var(--red);    color:#fff; }
     .badge-yel   { background:var(--yellow); color:#000; }
@@ -168,18 +168,18 @@
     }
     @keyframes modal-in { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
     .modal-header {
-      background:var(--orange); color:#000; padding:4px 10px;
+      background:var(--orange); color:#000; padding:6px 12px;
       display:flex; justify-content:space-between; align-items:center;
-      font-weight:700; font-size:12px; letter-spacing:2px; flex-shrink:0;
+      font-weight:700; font-size:13px; letter-spacing:2px; flex-shrink:0;
     }
-    .modal-close { cursor:pointer; font-size:16px; line-height:1; }
+    .modal-close { cursor:pointer; font-size:18px; line-height:1; }
     .modal-close:hover { opacity:0.7; }
-    .modal-body { overflow-y:auto; padding:10px; flex:1; }
-    .modal-table { width:100%; border-collapse:collapse; font-size:11px; }
-    .modal-table th { color:var(--orange); text-align:left; padding:3px 6px; border-bottom:1px solid var(--grey-dim); letter-spacing:1px; font-size:10px; }
-    .modal-table td { padding:3px 6px; border-bottom:1px solid #111; }
+    .modal-body { overflow-y:auto; padding:12px; flex:1; }
+    .modal-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .modal-table th { color:var(--orange); text-align:left; padding:5px 8px; border-bottom:1px solid var(--grey-dim); letter-spacing:1px; font-size:12px; }
+    .modal-table td { padding:5px 8px; border-bottom:1px solid #111; }
     .modal-table tr:hover td { background:#111; }
-    .modal-loading { color:var(--grey); padding:20px; text-align:center; letter-spacing:2px; }
+    .modal-loading { color:var(--grey); padding:24px; text-align:center; letter-spacing:2px; font-size:13px; }
 
     /* ── CUSTOMER 360 PANEL ── */
     .c360-search-bar {
@@ -188,13 +188,13 @@
       padding:6px 12px; display:none; align-items:center; gap:10px;
     }
     .c360-search-bar.open { display:flex; }
-    .c360-label { color:var(--cyan); font-size:11px; letter-spacing:2px; white-space:nowrap; }
+    .c360-label { color:var(--cyan); font-size:13px; letter-spacing:2px; white-space:nowrap; }
     .c360-input {
       background:transparent; border:none; border-bottom:1px solid var(--cyan);
-      color:var(--white); font-family:inherit; font-size:13px; outline:none;
-      flex:1; padding:2px 4px; letter-spacing:1px;
+      color:var(--white); font-family:inherit; font-size:15px; outline:none;
+      flex:1; padding:3px 6px; letter-spacing:1px;
     }
-    .c360-hint { color:var(--grey); font-size:10px; white-space:nowrap; }
+    .c360-hint { color:var(--grey); font-size:12px; white-space:nowrap; }
 
     .c360-panel {
       position:fixed; top:0; right:0; bottom:0; width:min(420px,90vw);
@@ -204,22 +204,22 @@
     }
     .c360-panel.open { transform:translateX(0); }
     .c360-panel-header {
-      background:var(--cyan); color:#000; padding:5px 10px;
+      background:var(--cyan); color:#000; padding:6px 12px;
       display:flex; justify-content:space-between; align-items:center;
-      font-weight:700; font-size:11px; letter-spacing:2px; flex-shrink:0;
+      font-weight:700; font-size:13px; letter-spacing:2px; flex-shrink:0;
       position:sticky; top:0;
     }
-    .c360-close { cursor:pointer; font-size:16px; }
-    .c360-section { padding:8px 10px; border-bottom:1px solid var(--grey-dim); }
-    .c360-sec-title { color:var(--cyan); font-size:10px; letter-spacing:2px; margin-bottom:4px; }
-    .c360-row { display:flex; justify-content:space-between; padding:2px 0; font-size:11px; border-bottom:1px solid #111; }
+    .c360-close { cursor:pointer; font-size:18px; }
+    .c360-section { padding:10px 12px; border-bottom:1px solid var(--grey-dim); }
+    .c360-sec-title { color:var(--cyan); font-size:11px; letter-spacing:2px; margin-bottom:5px; }
+    .c360-row { display:flex; justify-content:space-between; padding:3px 0; font-size:13px; border-bottom:1px solid #111; }
     .c360-key { color:var(--yellow); }
     .c360-val { color:var(--white); font-weight:700; }
 
     /* ── FOOTER ── */
     .footer {
       flex-shrink:0; background:#000; border-top:1px solid var(--grey-dim);
-      display:flex; align-items:stretch; font-size:11px; font-weight:700;
+      display:flex; align-items:stretch; font-size:12px; font-weight:700;
     }
     .fkey {
       display:flex; align-items:center; gap:0; cursor:pointer;
@@ -227,12 +227,12 @@
     }
     .fkey:hover .fkey-lbl { background:var(--white); color:#000; }
     .fkey:hover .fkey-txt { color:var(--yellow); }
-    .fkey-lbl { background:var(--grey-dim); color:var(--yellow); padding:3px 5px; font-size:10px; }
-    .fkey-txt { color:var(--white); padding:3px 7px; font-size:11px; }
+    .fkey-lbl { background:var(--grey-dim); color:var(--yellow); padding:4px 7px; font-size:11px; }
+    .fkey-txt { color:var(--white); padding:4px 9px; font-size:12px; }
     .fkey.fkey-active .fkey-lbl { background:var(--orange); color:#000; }
     .fkey.fkey-active .fkey-txt { color:var(--orange); }
     .footer-spacer { flex:1; }
-    .footer-info { padding:3px 10px; color:var(--grey); font-size:10px; font-weight:400; display:flex; align-items:center; gap:12px; }
+    .footer-info { padding:4px 12px; color:var(--grey); font-size:12px; font-weight:400; display:flex; align-items:center; gap:12px; }
 
     /* ── ANIMATIONS ── */
     @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
@@ -254,9 +254,9 @@
     <span class="header-sep">v1.1.0</span>
   </div>
   <div class="header-right">
-    <span id="date-display" class="dim" style="font-size:10px">----.--.--</span>
+    <span id="date-display" class="dim" style="font-size:12px">----.--.--</span>
     <span class="header-clock" id="clock">--:--:-- UTC</span>
-    <span class="blink" style="color:var(--green);font-size:9px">&#9632;</span>
+    <span class="blink" style="color:var(--green);font-size:11px">&#9632;</span>
   </div>
 </div>
 
@@ -1182,7 +1182,7 @@ function drawGraph() {
     if (isHl) {
       ctx.globalAlpha=0.85;
       ctx.fillStyle='#fff';
-      ctx.font='9px Courier New';
+      ctx.font='11px Courier New';
       ctx.textAlign='center';
       ctx.fillText(e.w.toFixed(2),(a.x+b.x)/2,(a.y+b.y)/2-5);
     }
@@ -1214,7 +1214,7 @@ function drawGraph() {
 
     // Label
     var lines=n.label.split('\n');
-    ctx.font = (isSel?'bold ':'')+'9px Courier New';
+    ctx.font = (isSel?'bold ':'')+'11px Courier New';
     ctx.textAlign='center';
     ctx.textBaseline='middle';
     ctx.fillStyle = isSel ? '#000' : col;
@@ -1238,7 +1238,7 @@ function drawGraph() {
     var by=Math.max(4, n.y-bh/2);
     ctx.fillStyle='#050505'; ctx.strokeStyle=nodeColors[n.type]; ctx.lineWidth=1;
     ctx.fillRect(bx,by,tw,bh); ctx.strokeRect(bx,by,tw,bh);
-    ctx.font='9px Courier New'; ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.font='11px Courier New'; ctx.textAlign='left'; ctx.textBaseline='top';
     lines.forEach(function(l,i){
       ctx.fillStyle=i===0?nodeColors[n.type]:'#aaa';
       ctx.fillText(l,bx+pad,by+pad+i*lh);
