@@ -3,716 +3,1241 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ECI TERMINAL</title>
+  <title>ECI TERMINAL v1.1</title>
   <style>
     :root {
-      --amber:       #ff9800;
-      --amber-bright:#ffd54f;
-      --amber-dim:   #bf6600;
-      --amber-dark:  #2d1800;
-      --bg:          #050401;
-      --bg-panel:    #090701;
-      --green:       #39ff14;
-      --red:         #ff3b3b;
-      --yellow:      #ffeb3b;
-      --border:      #3a2000;
+      --black:    #000000;
+      --orange:   #ff6600;
+      --yellow:   #ffcc00;
+      --white:    #f0f0e8;
+      --green:    #00ff41;
+      --red:      #ff3333;
+      --cyan:     #00ccff;
+      --grey:     #666666;
+      --grey-dim: #333333;
+      --panel-bg: #050505;
+      --border:   #2a2a2a;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
-
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; }
     body {
-      background: var(--bg);
-      color: var(--amber);
-      font-family: 'Courier New', Courier, 'Lucida Console', monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      display: flex;
-      flex-direction: column;
+      background:var(--black); color:var(--white);
+      font-family:'Courier New',Courier,'Lucida Console',monospace;
+      font-size:12px; line-height:1.45;
+      display:flex; flex-direction:column;
     }
-
-    /* CRT scanlines */
     body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: repeating-linear-gradient(
-        0deg, transparent 0px, transparent 3px,
-        rgba(0,0,0,0.09) 3px, rgba(0,0,0,0.09) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
+      content:''; position:fixed; inset:0;
+      background:repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 3px);
+      pointer-events:none; z-index:9999;
     }
 
-    /* CRT vignette */
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background: radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,0.75) 100%);
-      pointer-events: none;
-      z-index: 9998;
-    }
-
-    /* ── HEADER ─────────────────────────────────────────────────────── */
+    /* ── HEADER ── */
     .header {
-      flex-shrink: 0;
-      background: var(--amber);
-      color: #000;
-      padding: 3px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: 1px;
+      flex-shrink:0; background:var(--orange); color:#000;
+      padding:0; display:flex; font-weight:700; font-size:13px;
     }
-    .header-left { display: flex; align-items: center; gap: 14px; }
-    .header-badge {
-      background: #000;
-      color: var(--amber);
-      padding: 0 6px;
-      font-size: 10px;
-      letter-spacing: 2px;
+    .header-left { padding:4px 10px; display:flex; align-items:center; gap:0; flex:1; }
+    .header-title { letter-spacing:2px; }
+    .header-sep { background:rgba(0,0,0,0.25); padding:4px 8px; margin:0 8px; font-size:10px; letter-spacing:1px; }
+    .header-right {
+      background:#000; color:var(--orange); padding:4px 12px;
+      font-size:13px; font-weight:700; letter-spacing:1px;
+      display:flex; align-items:center; gap:16px;
     }
+    .header-clock { color:var(--yellow); }
 
-    /* ── TICKER ─────────────────────────────────────────────────────── */
+    /* ── TICKER ── */
     .ticker-bar {
-      flex-shrink: 0;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border);
-      padding: 3px 0;
-      overflow: hidden;
-      white-space: nowrap;
-      height: 24px;
+      flex-shrink:0; background:#0a0a0a;
+      border-top:1px solid var(--orange); border-bottom:1px solid var(--grey-dim);
+      padding:2px 0; overflow:hidden; white-space:nowrap; height:22px;
     }
-    .ticker-inner {
-      display: inline-block;
-      animation: scroll-ticker 100s linear infinite;
-      color: var(--amber-bright);
-      font-size: 12px;
-      padding-left: 100vw;
-    }
-    @keyframes scroll-ticker {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-200%); }
-    }
+    .ticker-inner { display:inline-block; animation:scroll-ticker 110s linear infinite; font-size:11px; padding-left:100vw; letter-spacing:0.5px; }
+    .ticker-pos { color:var(--green); } .ticker-neg { color:var(--red); }
+    .ticker-sep { color:var(--grey); margin:0 10px; }
+    .ticker-lbl { color:var(--yellow); } .ticker-val { color:var(--white); }
+    @keyframes scroll-ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-200%)} }
 
-    /* ── STATUS LINE ────────────────────────────────────────────────── */
+    /* ── STATUS + SEGMENT BAR ── */
     .status-line {
-      flex-shrink: 0;
-      background: var(--bg-panel);
-      border-bottom: 2px solid var(--amber-dim);
-      padding: 2px 12px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--amber-dim);
-      gap: 8px;
+      flex-shrink:0; background:#080808; border-bottom:1px solid var(--grey-dim);
+      padding:2px 10px; display:flex; justify-content:space-between; align-items:center; font-size:11px;
     }
-    .status-section { display: flex; align-items: center; gap: 12px; }
+    .status-group { display:flex; align-items:center; gap:14px; }
+    .status-chip { display:flex; align-items:center; gap:4px; letter-spacing:0.5px; }
+    .status-label { color:var(--grey); }
 
-    /* ── MAIN GRID ──────────────────────────────────────────────────── */
-    .main {
-      flex: 1;
-      overflow: auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .seg-bar {
+      flex-shrink:0; background:#050505; border-bottom:2px solid var(--orange);
+      padding:3px 10px; display:flex; align-items:center; gap:8px;
     }
-    .panel {
-      padding: 10px 14px;
-      border-right: 1px solid var(--border);
-      overflow-y: auto;
+    .seg-label { color:var(--grey); font-size:10px; letter-spacing:1px; margin-right:4px; }
+    .seg-chip {
+      padding:2px 10px; font-size:10px; font-weight:700; letter-spacing:1.5px;
+      border:1px solid var(--grey-dim); background:transparent; color:var(--grey);
+      cursor:pointer; transition:all 0.15s;
     }
-    .panel:last-child { border-right: none; }
+    .seg-chip:hover { border-color:var(--orange); color:var(--orange); }
+    .seg-chip.active { background:var(--orange); color:#000; border-color:var(--orange); }
 
-    /* ── PANEL COMPONENTS ───────────────────────────────────────────── */
-    .panel-title {
-      color: var(--amber-bright);
-      font-weight: 700;
-      font-size: 11px;
-      letter-spacing: 3px;
-      margin-bottom: 2px;
-      text-shadow: 0 0 8px var(--amber-bright);
+    /* ── TAB BAR ── */
+    .tab-bar {
+      flex-shrink:0; background:#080808; border-bottom:1px solid var(--grey-dim);
+      display:flex; align-items:stretch; font-size:11px;
     }
-    .panel-rule {
-      color: var(--amber-dark);
-      font-size: 12px;
-      margin-bottom: 5px;
-      letter-spacing: 0;
-      user-select: none;
+    .tab {
+      padding:3px 16px; cursor:pointer; color:var(--grey); letter-spacing:1px;
+      border-right:1px solid var(--grey-dim); font-weight:700;
     }
+    .tab:hover { color:var(--white); }
+    .tab.active { color:var(--orange); border-bottom:2px solid var(--orange); background:#0a0a0a; }
+
+    /* ── MAIN GRID ── */
+    .main { flex:1; overflow:hidden; position:relative; }
+    .view { display:none; height:100%; }
+    .view.active { display:flex; }
+
+    /* KPI view */
+    .kpi-view { display:none; }
+    .kpi-view.active { display:grid; grid-template-columns:1fr 1fr; height:100%; }
+    .panel { padding:8px 10px; border-right:1px solid var(--grey-dim); overflow-y:auto; }
+    .panel:last-child { border-right:none; }
+
+    /* Graph view */
+    .graph-view { display:none; }
+    .graph-view.active { display:flex; flex-direction:column; height:100%; }
+    #graph-canvas { flex:1; width:100%; display:block; cursor:grab; }
+    #graph-canvas:active { cursor:grabbing; }
+    .graph-legend {
+      flex-shrink:0; background:#050505; border-top:1px solid var(--grey-dim);
+      padding:4px 12px; display:flex; gap:20px; align-items:center; font-size:10px;
+    }
+    .legend-item { display:flex; align-items:center; gap:5px; }
+    .legend-dot { width:8px; height:8px; border-radius:50%; }
+
+    /* ── SECTION HEADER ── */
+    .sec-head { display:flex; align-items:center; gap:0; margin-bottom:4px; margin-top:2px; }
+    .sec-tag { background:var(--orange); color:#000; font-weight:700; font-size:10px; letter-spacing:2px; padding:1px 6px; }
+    .sec-line { flex:1; height:1px; background:var(--grey-dim); margin-left:6px; }
+
+    /* ── METRIC ROWS ── */
     .metric-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding: 2px 0;
-      border-bottom: 1px dotted rgba(58,32,0,0.5);
+      display:flex; justify-content:space-between; align-items:baseline;
+      padding:2px 2px; border-bottom:1px solid #111; cursor:pointer; transition:background 0.1s;
     }
-    .metric-row:last-child { border-bottom: none; }
-    .metric-label {
-      color: var(--amber-dim);
-      font-size: 11px;
-      letter-spacing: 1px;
-      flex: 0 0 auto;
-      min-width: 195px;
-    }
-    .metric-label.sub {
-      padding-left: 14px;
-      min-width: 195px;
-    }
-    .metric-value {
-      font-weight: 700;
-      font-size: 13px;
-      text-align: right;
-      flex: 1;
-    }
-    .metric-value.sm { font-size: 11px; font-weight: 400; }
-    .mbar { color: var(--amber-dark); font-size: 10px; margin-left: 7px; letter-spacing: -1px; }
-    .section-gap { margin-top: 12px; }
+    .metric-row:hover { background:#111; }
+    .metric-row:last-child { border-bottom:none; }
+    .metric-row.no-drill { cursor:default; }
+    .metric-row.no-drill:hover { background:transparent; }
+    .drill-hint { color:var(--grey-dim); font-size:9px; margin-left:4px; }
 
-    .good  { color: var(--green); }
-    .bad   { color: var(--red); }
-    .warn  { color: var(--yellow); }
-    .neu   { color: var(--amber); }
-    .dim   { color: var(--amber-dim); }
+    .ml { color:var(--yellow); font-size:11px; letter-spacing:0.5px; flex:0 0 auto; min-width:190px; }
+    .ml.sub { color:var(--grey); padding-left:12px; min-width:190px; font-size:10px; }
+    .mv { font-weight:700; font-size:12px; text-align:right; flex:1; color:var(--white); }
+    .mv.sm { font-size:10px; font-weight:400; color:var(--grey); }
+    .mv.lg { font-size:14px; }
+    .mbar { color:#2a4a2a; font-size:10px; margin-left:6px; letter-spacing:-1px; }
+    .mbar-fill { color:var(--green); }
 
-    /* ── FOOTER ─────────────────────────────────────────────────────── */
+    .pos  { color:var(--green)  !important; }
+    .neg  { color:var(--red)    !important; }
+    .warn { color:var(--yellow) !important; }
+    .cyn  { color:var(--cyan)   !important; }
+    .org  { color:var(--orange) !important; }
+    .dim  { color:var(--grey)   !important; }
+    .gap  { margin-top:10px; }
+
+    .badge { display:inline-block; padding:0 5px; font-size:10px; font-weight:700; letter-spacing:1px; }
+    .badge-green { background:var(--green);  color:#000; }
+    .badge-red   { background:var(--red);    color:#fff; }
+    .badge-yel   { background:var(--yellow); color:#000; }
+    .badge-org   { background:var(--orange); color:#000; }
+    .badge-cyn   { background:var(--cyan);   color:#000; }
+
+    /* ── DRILL-THROUGH MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.85);
+      z-index:1000; display:none; justify-content:center; align-items:center;
+    }
+    .modal-overlay.open { display:flex; }
+    .modal-box {
+      background:#070707; border:1px solid var(--orange);
+      width:min(680px,92vw); max-height:80vh;
+      display:flex; flex-direction:column; animation:modal-in 0.15s ease-out;
+    }
+    @keyframes modal-in { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+    .modal-header {
+      background:var(--orange); color:#000; padding:4px 10px;
+      display:flex; justify-content:space-between; align-items:center;
+      font-weight:700; font-size:12px; letter-spacing:2px; flex-shrink:0;
+    }
+    .modal-close { cursor:pointer; font-size:16px; line-height:1; }
+    .modal-close:hover { opacity:0.7; }
+    .modal-body { overflow-y:auto; padding:10px; flex:1; }
+    .modal-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .modal-table th { color:var(--orange); text-align:left; padding:3px 6px; border-bottom:1px solid var(--grey-dim); letter-spacing:1px; font-size:10px; }
+    .modal-table td { padding:3px 6px; border-bottom:1px solid #111; }
+    .modal-table tr:hover td { background:#111; }
+    .modal-loading { color:var(--grey); padding:20px; text-align:center; letter-spacing:2px; }
+
+    /* ── CUSTOMER 360 PANEL ── */
+    .c360-search-bar {
+      position:fixed; top:0; left:0; right:0; z-index:900;
+      background:#0a0a0a; border-bottom:2px solid var(--cyan);
+      padding:6px 12px; display:none; align-items:center; gap:10px;
+    }
+    .c360-search-bar.open { display:flex; }
+    .c360-label { color:var(--cyan); font-size:11px; letter-spacing:2px; white-space:nowrap; }
+    .c360-input {
+      background:transparent; border:none; border-bottom:1px solid var(--cyan);
+      color:var(--white); font-family:inherit; font-size:13px; outline:none;
+      flex:1; padding:2px 4px; letter-spacing:1px;
+    }
+    .c360-hint { color:var(--grey); font-size:10px; white-space:nowrap; }
+
+    .c360-panel {
+      position:fixed; top:0; right:0; bottom:0; width:min(420px,90vw);
+      background:#050505; border-left:2px solid var(--cyan);
+      z-index:800; transform:translateX(100%); transition:transform 0.2s ease-out;
+      overflow-y:auto; display:flex; flex-direction:column;
+    }
+    .c360-panel.open { transform:translateX(0); }
+    .c360-panel-header {
+      background:var(--cyan); color:#000; padding:5px 10px;
+      display:flex; justify-content:space-between; align-items:center;
+      font-weight:700; font-size:11px; letter-spacing:2px; flex-shrink:0;
+      position:sticky; top:0;
+    }
+    .c360-close { cursor:pointer; font-size:16px; }
+    .c360-section { padding:8px 10px; border-bottom:1px solid var(--grey-dim); }
+    .c360-sec-title { color:var(--cyan); font-size:10px; letter-spacing:2px; margin-bottom:4px; }
+    .c360-row { display:flex; justify-content:space-between; padding:2px 0; font-size:11px; border-bottom:1px solid #111; }
+    .c360-key { color:var(--yellow); }
+    .c360-val { color:var(--white); font-weight:700; }
+
+    /* ── FOOTER ── */
     .footer {
-      flex-shrink: 0;
-      background: var(--amber-dim);
-      color: #000;
-      display: flex;
-      font-size: 11px;
-      font-weight: 700;
-      align-items: stretch;
+      flex-shrink:0; background:#000; border-top:1px solid var(--grey-dim);
+      display:flex; align-items:stretch; font-size:11px; font-weight:700;
     }
     .fkey {
-      padding: 3px 10px;
-      cursor: pointer;
-      border-right: 1px solid rgba(0,0,0,0.35);
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
+      display:flex; align-items:center; gap:0; cursor:pointer;
+      border-right:1px solid var(--grey-dim); white-space:nowrap; overflow:hidden;
     }
-    .fkey:hover { background: #000; color: var(--amber); }
-    .footer-spacer { flex: 1; }
-    .footer-right {
-      padding: 3px 10px;
-      font-weight: 400;
-      font-size: 10px;
-      display: flex;
-      align-items: center;
-    }
+    .fkey:hover .fkey-lbl { background:var(--white); color:#000; }
+    .fkey:hover .fkey-txt { color:var(--yellow); }
+    .fkey-lbl { background:var(--grey-dim); color:var(--yellow); padding:3px 5px; font-size:10px; }
+    .fkey-txt { color:var(--white); padding:3px 7px; font-size:11px; }
+    .fkey.fkey-active .fkey-lbl { background:var(--orange); color:#000; }
+    .fkey.fkey-active .fkey-txt { color:var(--orange); }
+    .footer-spacer { flex:1; }
+    .footer-info { padding:3px 10px; color:var(--grey); font-size:10px; font-weight:400; display:flex; align-items:center; gap:12px; }
 
-    /* ── ANIMATIONS ─────────────────────────────────────────────────── */
+    /* ── ANIMATIONS ── */
     @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-    .blink { animation: blink 1s step-end infinite; }
+    .blink { animation:blink 1s step-end infinite; }
+    @keyframes boot { 0%{opacity:0} 100%{opacity:1} }
+    .main, .status-line, .ticker-bar { animation:boot 0.4s ease-out; }
 
-    @keyframes pulse-glow {
-      0%,100% { text-shadow: 0 0 3px var(--amber); }
-      50%     { text-shadow: 0 0 14px var(--amber), 0 0 28px rgba(255,152,0,0.4); }
-    }
-    .pulse { animation: pulse-glow 4s ease-in-out infinite; }
-
-    @keyframes boot {
-      0%   { opacity: 0; }
-      100% { opacity: 1; }
-    }
-    .main, .ticker-bar, .status-line { animation: boot 0.6s ease-out; }
-
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 4px; background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--amber-dark); }
+    ::-webkit-scrollbar { width:3px; background:#000; }
+    ::-webkit-scrollbar-thumb { background:var(--grey-dim); }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
-      <span>&#9654;&#9654; ECOMMERCE INTELLIGENCE TERMINAL</span>
-      <span class="header-badge">v1.0</span>
-      <span class="header-badge">IBM WXD</span>
-    </div>
-    <span id="clock" class="pulse">--:--:-- UTC</span>
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <div class="header-left">
+    <span class="header-title">&#9654; ECOMMERCE INTELLIGENCE</span>
+    <span class="header-sep">IBM WXD</span>
+    <span class="header-sep">v1.1.0</span>
   </div>
-
-  <!-- TICKER -->
-  <div class="ticker-bar">
-    <span class="ticker-inner" id="ticker-text">
-      &#9632; INITIALIZING FEED... &#9632;
-    </span>
+  <div class="header-right">
+    <span id="date-display" class="dim" style="font-size:10px">----.--.--</span>
+    <span class="header-clock" id="clock">--:--:-- UTC</span>
+    <span class="blink" style="color:var(--green);font-size:9px">&#9632;</span>
   </div>
+</div>
 
-  <!-- STATUS LINE -->
-  <div class="status-line">
-    <div class="status-section">
-      SYS:&nbsp;<span id="sys-status" class="neu">&#9679; CONNECTING...</span>
-      &nbsp;&nbsp;
-      CASSANDRA:&nbsp;<span id="sys-cassandra" class="dim">&#9679; --</span>
-      &nbsp;
-      PRESTO:&nbsp;<span id="sys-presto" class="dim">&#9679; --</span>
-      &nbsp;
-      MODELS:&nbsp;<span id="sys-models" class="dim">&#9679; --</span>
-    </div>
-    <div class="status-section">
-      REFRESH IN: <span id="countdown" style="color:var(--amber)">30</span>s
-      &nbsp;&nbsp;
-      <span class="good blink" style="font-size:9px">&#9632;</span>&nbsp;LIVE
-    </div>
+<!-- ══ TICKER ══ -->
+<div class="ticker-bar">
+  <span class="ticker-inner" id="ticker-text">
+    <span class="ticker-sep">&#9474;</span>
+    <span class="ticker-lbl">CHURN</span>&nbsp;<span class="ticker-val">--%</span>
+    <span class="ticker-sep">&#9474;</span>
+    <span class="ticker-lbl">LTV</span>&nbsp;<span class="ticker-val">$--</span>
+    <span class="ticker-sep">&#9474;</span>
+    <span class="ticker-lbl">RECOVERY</span>&nbsp;<span class="ticker-val">--%</span>
+    <span class="ticker-sep">&#9474;</span>
+    <span class="ticker-lbl">ROI</span>&nbsp;<span class="ticker-val">--x</span>
+    <span class="ticker-sep">&#9474;</span>
+  </span>
+</div>
+
+<!-- ══ STATUS LINE ══ -->
+<div class="status-line">
+  <div class="status-group">
+    <span class="status-chip"><span class="status-label">SYS</span><span id="sys-status" class="warn">&#9679;&nbsp;CONNECTING</span></span>
+    <span class="status-chip"><span class="status-label">CASSANDRA</span><span id="sys-cassandra" class="dim">&#9679;&nbsp;--</span></span>
+    <span class="status-chip"><span class="status-label">PRESTO</span><span id="sys-presto" class="dim">&#9679;&nbsp;--</span></span>
+    <span class="status-chip"><span class="status-label">MODELS</span><span id="sys-models" class="dim">&#9679;&nbsp;--</span></span>
   </div>
+  <div class="status-group">
+    <span class="status-chip"><span class="status-label">REFRESH IN</span><span id="countdown" style="color:var(--white)">30</span><span class="status-label">s</span></span>
+    <span class="status-chip cyn">LIVE&nbsp;<span class="blink">&#9646;</span></span>
+  </div>
+</div>
 
-  <!-- MAIN CONTENT -->
-  <div class="main">
+<!-- ══ SEGMENT CHIPS ══ -->
+<div class="seg-bar">
+  <span class="seg-label">SEGMENT</span>
+  <button class="seg-chip active" onclick="setSegment('ALL')">ALL</button>
+  <button class="seg-chip" onclick="setSegment('HIGH')">HIGH-VALUE</button>
+  <button class="seg-chip" onclick="setSegment('NEW')">NEW CUSTOMERS</button>
+  <button class="seg-chip" onclick="setSegment('MOBILE')">MOBILE</button>
+</div>
 
-    <!-- ── LEFT PANEL ─────────────────────────────────────────────── -->
+<!-- ══ TAB BAR ══ -->
+<div class="tab-bar">
+  <div class="tab active" id="tab-kpi" onclick="setTab('kpi')">F1&nbsp;&nbsp;KPI OVERVIEW</div>
+  <div class="tab" id="tab-graph" onclick="setTab('graph')">F5&nbsp;&nbsp;KNOWLEDGE GRAPH</div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- KPI VIEW -->
+  <div class="kpi-view active" id="view-kpi">
     <div class="panel">
-
-      <div class="panel-title">PLATFORM KPIs</div>
-      <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
-
-      <div class="metric-row">
-        <span class="metric-label">CHURN RATE</span>
-        <span class="metric-value neu" id="v-churn-rate">--%</span>
+      <div class="sec-head"><span class="sec-tag">PLATFORM KPIs</span><span class="sec-line"></span></div>
+      <div class="metric-row" onclick="drillDown('churn-rate')">
+        <span class="ml">CHURN RATE</span><span class="mv" id="v-churn-rate">--%</span><span class="drill-hint">&#9654;</span>
       </div>
-      <div class="metric-row">
-        <span class="metric-label">CHURN RATE &#916;</span>
-        <span class="metric-value neu" id="v-churn-delta">-- pp</span>
+      <div class="metric-row no-drill"><span class="ml">CHURN RATE &#916;</span><span class="mv" id="v-churn-delta">-- pp</span></div>
+      <div class="metric-row" onclick="drillDown('ltv')">
+        <span class="ml">AVG CUSTOMER LTV</span><span class="mv" id="v-ltv">$--</span><span class="drill-hint">&#9654;</span>
       </div>
-      <div class="metric-row">
-        <span class="metric-label">AVG CUSTOMER LTV</span>
-        <span class="metric-value neu" id="v-ltv">$--</span>
+      <div class="metric-row no-drill"><span class="ml">LTV &#916; YOY</span><span class="mv" id="v-ltv-delta">--%</span></div>
+      <div class="metric-row" onclick="drillDown('carts')">
+        <span class="ml">CART RECOVERY RATE</span><span class="mv" id="v-cart-rate">--%</span><span class="drill-hint">&#9654;</span>
       </div>
-      <div class="metric-row">
-        <span class="metric-label">LTV &#916; YOY</span>
-        <span class="metric-value neu" id="v-ltv-delta">--%</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">CART RECOVERY RATE</span>
-        <span class="metric-value neu" id="v-cart-rate">--%</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">PRICING LIFT</span>
-        <span class="metric-value neu" id="v-pricing-lift">--%</span>
+      <div class="metric-row" onclick="drillDown('pricing')">
+        <span class="ml">PRICING LIFT</span><span class="mv" id="v-pricing-lift">--%</span><span class="drill-hint">&#9654;</span>
       </div>
 
-      <div class="section-gap">
-        <div class="panel-title">REVENUE &amp; ROI</div>
-        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+      <div class="gap">
+        <div class="sec-head"><span class="sec-tag">REVENUE &amp; ROI</span><span class="sec-line"></span></div>
       </div>
+      <div class="metric-row no-drill"><span class="ml">RECOVERY REVENUE</span><span class="mv pos" id="v-recovery-rev">$--</span></div>
+      <div class="metric-row no-drill"><span class="ml">INCREMENTAL REVENUE</span><span class="mv pos" id="v-incr-rev">$--</span></div>
+      <div class="metric-row no-drill"><span class="ml">INTERVENTION COST</span><span class="mv neg" id="v-int-cost">$--</span></div>
+      <div class="metric-row no-drill"><span class="ml">ROI MULTIPLIER</span><span class="mv" id="v-roi">--x</span></div>
 
-      <div class="metric-row">
-        <span class="metric-label">RECOVERY REVENUE</span>
-        <span class="metric-value good" id="v-recovery-rev">$--</span>
+      <div class="gap">
+        <div class="sec-head"><span class="sec-tag">SYSTEM HEALTH</span><span class="sec-line"></span></div>
       </div>
-      <div class="metric-row">
-        <span class="metric-label">INCREMENTAL REVENUE</span>
-        <span class="metric-value good" id="v-incr-rev">$--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">INTERVENTION COST</span>
-        <span class="metric-value bad" id="v-int-cost">$--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ROI MULTIPLIER</span>
-        <span class="metric-value" id="v-roi">--x</span>
-      </div>
-
-      <div class="section-gap">
-        <div class="panel-title">SYSTEM HEALTH</div>
-        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
-      </div>
-
-      <div class="metric-row">
-        <span class="metric-label">API SERVER</span>
-        <span class="metric-value dim" id="h-api">&#9679; --</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">CASSANDRA</span>
-        <span class="metric-value dim" id="h-cassandra">&#9679; --</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">PRESTO</span>
-        <span class="metric-value dim" id="h-presto">&#9679; --</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ML MODELS</span>
-        <span class="metric-value dim" id="h-models">&#9679; --</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">LAST UPDATED</span>
-        <span class="metric-value sm dim" id="h-updated">--</span>
-      </div>
-
+      <div class="metric-row no-drill"><span class="ml">API SERVER</span><span class="mv dim" id="h-api">&#9679;&nbsp;--</span></div>
+      <div class="metric-row no-drill"><span class="ml">CASSANDRA</span><span class="mv dim" id="h-cassandra">&#9679;&nbsp;--</span></div>
+      <div class="metric-row no-drill"><span class="ml">PRESTO</span><span class="mv dim" id="h-presto">&#9679;&nbsp;--</span></div>
+      <div class="metric-row no-drill"><span class="ml">ML MODELS</span><span class="mv dim" id="h-models">&#9679;&nbsp;--</span></div>
+      <div class="metric-row no-drill"><span class="ml">LAST UPDATED</span><span class="mv sm cyn" id="h-updated">--</span></div>
     </div>
 
-    <!-- ── RIGHT PANEL ────────────────────────────────────────────── -->
     <div class="panel">
+      <div class="sec-head"><span class="sec-tag">MODEL PERFORMANCE</span><span class="sec-line"></span></div>
+      <div class="metric-row" onclick="drillDown('churn-model')">
+        <span class="ml">CHURN MODEL AUC</span><span class="mv" id="m-churn-auc">--</span><span class="drill-hint">&#9654;</span>
+      </div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; NEW CUSTOMERS</span><span class="mv sm" id="m-seg-new">--</span></div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; HIGH-VALUE</span><span class="mv sm" id="m-seg-hv">--</span></div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; MOBILE</span><span class="mv sm" id="m-seg-mob">--</span></div>
+      <div class="metric-row" style="margin-top:4px" onclick="drillDown('ltv-model')">
+        <span class="ml">LTV MODEL MAE</span><span class="mv" id="m-ltv-mae">$--</span><span class="drill-hint">&#9654;</span>
+      </div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; 2024-Q1 COHORT</span><span class="mv sm" id="m-cohort-q1">--</span></div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; 2024-Q2 COHORT</span><span class="mv sm" id="m-cohort-q2">--</span></div>
+      <div class="metric-row" style="margin-top:4px" onclick="drillDown('recovery-model')">
+        <span class="ml">RECOVERY MODEL AUC</span><span class="mv" id="m-rec-auc">--</span><span class="drill-hint">&#9654;</span>
+      </div>
+      <div class="metric-row no-drill"><span class="ml">ELASTICITY ACCURACY</span><span class="mv" id="m-elastic">--%</span></div>
+      <div class="metric-row no-drill" style="margin-top:5px"><span class="ml">DRIFT DETECTED</span><span class="mv pos" id="m-drift">--</span></div>
+      <div class="metric-row no-drill"><span class="ml">LAST EVALUATED</span><span class="mv sm cyn" id="m-eval-time">--</span></div>
 
-      <div class="panel-title">MODEL PERFORMANCE</div>
-      <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
-
-      <div class="metric-row">
-        <span class="metric-label">CHURN MODEL AUC</span>
-        <span class="metric-value" id="m-churn-auc">--</span>
+      <div class="gap">
+        <div class="sec-head"><span class="sec-tag">DATA FRESHNESS</span><span class="sec-line"></span></div>
       </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; NEW CUSTOMERS</span>
-        <span class="metric-value sm dim" id="m-seg-new">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; HIGH-VALUE</span>
-        <span class="metric-value sm dim" id="m-seg-hv">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; MOBILE</span>
-        <span class="metric-value sm dim" id="m-seg-mob">--</span>
-      </div>
-
-      <div class="metric-row" style="margin-top:5px">
-        <span class="metric-label">LTV MODEL MAE</span>
-        <span class="metric-value" id="m-ltv-mae">$--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; 2024-Q1 COHORT</span>
-        <span class="metric-value sm dim" id="m-cohort-q1">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; 2024-Q2 COHORT</span>
-        <span class="metric-value sm dim" id="m-cohort-q2">--</span>
-      </div>
-
-      <div class="metric-row" style="margin-top:5px">
-        <span class="metric-label">RECOVERY MODEL AUC</span>
-        <span class="metric-value" id="m-rec-auc">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ELASTICITY ACCURACY</span>
-        <span class="metric-value" id="m-elastic">--%</span>
-      </div>
-
-      <div class="metric-row" style="margin-top:7px">
-        <span class="metric-label">DRIFT DETECTED</span>
-        <span class="metric-value good" id="m-drift">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">LAST EVALUATED</span>
-        <span class="metric-value sm dim" id="m-eval-time">--</span>
-      </div>
-
-      <div class="section-gap">
-        <div class="panel-title">DATA FRESHNESS</div>
-        <div class="panel-rule">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
-      </div>
-
-      <div class="metric-row">
-        <span class="metric-label">CASSANDRA</span>
-        <span class="metric-value" id="f-cassandra">-- min ago</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ICEBERG / PRESTO</span>
-        <span class="metric-value" id="f-iceberg">-- hrs ago</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">CHURN SCORES</span>
-        <span class="metric-value" id="f-churn">-- hrs ago</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">LTV PREDICTIONS</span>
-        <span class="metric-value" id="f-ltv">-- hrs ago</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">PRICING RECS</span>
-        <span class="metric-value" id="f-pricing">-- hrs ago</span>
-      </div>
-      <div class="metric-row" style="margin-top:5px">
-        <span class="metric-label">OVERALL SLA</span>
-        <span class="metric-value" id="f-sla">--</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; CASSANDRA SLA</span>
-        <span class="metric-value sm dim" id="f-cassandra-sla">-- min</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label sub">&#8627; ICEBERG SLA</span>
-        <span class="metric-value sm dim" id="f-iceberg-sla">-- hrs</span>
-      </div>
-
+      <div class="metric-row no-drill"><span class="ml">CASSANDRA</span><span class="mv" id="f-cassandra">-- min ago</span></div>
+      <div class="metric-row no-drill"><span class="ml">ICEBERG / PRESTO</span><span class="mv" id="f-iceberg">-- hrs ago</span></div>
+      <div class="metric-row no-drill"><span class="ml">CHURN SCORES</span><span class="mv" id="f-churn">-- hrs ago</span></div>
+      <div class="metric-row no-drill"><span class="ml">LTV PREDICTIONS</span><span class="mv" id="f-ltv">-- hrs ago</span></div>
+      <div class="metric-row no-drill"><span class="ml">PRICING RECS</span><span class="mv" id="f-pricing">-- hrs ago</span></div>
+      <div class="metric-row no-drill" style="margin-top:4px"><span class="ml">OVERALL SLA</span><span class="mv" id="f-sla">--</span></div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; CASSANDRA THRESHOLD</span><span class="mv sm dim" id="f-cassandra-sla">-- min</span></div>
+      <div class="metric-row no-drill"><span class="ml sub">&#8627; ICEBERG THRESHOLD</span><span class="mv sm dim" id="f-iceberg-sla">-- hrs</span></div>
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <div class="footer">
-    <span class="fkey" onclick="window.open('/docs','_blank')" title="Swagger API docs">F1&nbsp;API&nbsp;DOCS</span>
-    <span class="fkey" onclick="window.open('/api/v1/dashboard/summary','_blank')">F2&nbsp;KPI&nbsp;JSON</span>
-    <span class="fkey" onclick="window.open('/api/v1/models/performance','_blank')">F3&nbsp;MODELS</span>
-    <span class="fkey" onclick="window.open('/api/v1/system/data-freshness','_blank')">F4&nbsp;FRESHNESS</span>
-    <span class="fkey" onclick="window.open('/health','_blank')">F6&nbsp;HEALTH</span>
-    <span class="fkey" onclick="doRefresh()">F8&nbsp;REFRESH</span>
-    <span class="footer-spacer"></span>
-    <span class="footer-right">LAST REFRESH: <span id="last-refresh">--:--:--</span> UTC</span>
+  <!-- GRAPH VIEW -->
+  <div class="graph-view" id="view-graph">
+    <canvas id="graph-canvas"></canvas>
+    <div class="graph-legend">
+      <span class="dim" style="letter-spacing:1px;font-size:10px">NODES:</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#00ccff"></span><span class="dim">SEGMENT</span></span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ffcc00"></span><span class="dim">RISK FACTOR</span></span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ff6600"></span><span class="dim">INTERVENTION</span></span>
+      <span class="legend-item"><span class="legend-dot" style="background:#00ff41"></span><span class="dim">OUTCOME</span></span>
+      <span class="dim" style="margin-left:12px;font-size:10px">DRAG NODES &nbsp;&#9474;&nbsp; SCROLL TO ZOOM &nbsp;&#9474;&nbsp; CLICK TO INSPECT</span>
+    </div>
   </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<div class="footer">
+  <div class="fkey fkey-active" id="fk-kpi" onclick="setTab('kpi')">
+    <span class="fkey-lbl">F1</span><span class="fkey-txt">KPI VIEW</span>
+  </div>
+  <div class="fkey" onclick="window.open('/api/v1/dashboard/summary','_blank')">
+    <span class="fkey-lbl">F2</span><span class="fkey-txt">KPI JSON</span>
+  </div>
+  <div class="fkey" onclick="window.open('/api/v1/models/performance','_blank')">
+    <span class="fkey-lbl">F3</span><span class="fkey-txt">MODELS</span>
+  </div>
+  <div class="fkey" onclick="window.open('/api/v1/system/data-freshness','_blank')">
+    <span class="fkey-lbl">F4</span><span class="fkey-txt">FRESHNESS</span>
+  </div>
+  <div class="fkey" id="fk-graph" onclick="setTab('graph')">
+    <span class="fkey-lbl">F5</span><span class="fkey-txt">GRAPH</span>
+  </div>
+  <div class="fkey" onclick="window.open('/health','_blank')">
+    <span class="fkey-lbl">F6</span><span class="fkey-txt">HEALTH</span>
+  </div>
+  <div class="fkey" onclick="window.open('/docs','_blank')">
+    <span class="fkey-lbl">F7</span><span class="fkey-txt">API DOCS</span>
+  </div>
+  <div class="fkey" onclick="doRefresh()">
+    <span class="fkey-lbl">F8</span><span class="fkey-txt">REFRESH</span>
+  </div>
+  <div class="fkey" onclick="toggleC360()">
+    <span class="fkey-lbl">F9</span><span class="fkey-txt">CUSTOMER&nbsp;360</span>
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="footer-info">
+    <span>LAST REFRESH: <span id="last-refresh" style="color:var(--cyan)">--:--:--</span> UTC</span>
+  </div>
+</div>
+
+<!-- ══ DRILL-THROUGH MODAL ══ -->
+<div class="modal-overlay" id="drill-modal" onclick="closeDrill(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span id="modal-title">DETAIL</span>
+      <span class="modal-close" onclick="closeDrillForce()">&#10005;</span>
+    </div>
+    <div class="modal-body" id="modal-body"><div class="modal-loading">LOADING&#133;</div></div>
+  </div>
+</div>
+
+<!-- ══ CUSTOMER 360 SEARCH ══ -->
+<div class="c360-search-bar" id="c360-search">
+  <span class="c360-label">CUSTOMER 360 &#9656;</span>
+  <input class="c360-input" id="c360-input" type="text" placeholder="Enter customer ID&#133;" autocomplete="off"/>
+  <span class="c360-hint">ENTER to lookup &nbsp;&#9474;&nbsp; ESC to close</span>
+</div>
+
+<!-- ══ CUSTOMER 360 PANEL ══ -->
+<div class="c360-panel" id="c360-panel">
+  <div class="c360-panel-header">
+    <span id="c360-panel-title">CUSTOMER 360</span>
+    <span class="c360-close" onclick="closeC360()">&#10005;</span>
+  </div>
+  <div id="c360-content"><div class="modal-loading" style="padding:30px">ENTER CUSTOMER ID&#133;</div></div>
+</div>
 
 <script>
-  // ── Utility ────────────────────────────────────────────────────────────
-  function bar(val, max, len) {
-    len = len || 10;
-    var filled = Math.min(len, Math.max(0, Math.round((val / max) * len)));
-    var b = '';
-    for (var i = 0; i < filled; i++) b += '█';
-    for (var i = filled; i < len; i++) b += '░';
-    return b;
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+var activeSegment = 'ALL';
+var activeTab     = 'kpi';
+var kpiData       = null;
 
-  function fmt(v, decimals) {
-    decimals = decimals === undefined ? 1 : decimals;
-    if (v === null || v === undefined) return '--';
-    return (+v).toFixed(decimals);
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+function bar(val, max, len) {
+  len = len || 8;
+  var filled = Math.min(len, Math.max(0, Math.round((val / max) * len)));
+  var out = '<span class="mbar-fill">';
+  for (var i = 0; i < filled; i++) out += '█';
+  out += '</span><span class="mbar">';
+  for (var i = filled; i < len; i++) out += '░';
+  out += '</span>';
+  return out;
+}
+function fmt(v, d) {
+  d = d === undefined ? 1 : d;
+  if (v === null || v === undefined) return '--';
+  return (+v).toFixed(d);
+}
+function fmtMoney(v) {
+  if (v === null || v === undefined) return '$--';
+  if (v >= 1000000) return '$' + (v/1000000).toFixed(2) + 'M';
+  if (v >= 1000)    return '$' + (v/1000).toFixed(0) + 'K';
+  return '$' + (+v).toFixed(0);
+}
+function fmtTs(iso) {
+  if (!iso) return '--';
+  return iso.replace('T',' ').split('.')[0] + ' UTC';
+}
+function setEl(id, html) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+function cls(text, c) { return '<span class="' + c + '">' + text + '</span>'; }
+function badge(text, c) { return '<span class="badge badge-' + c + '">' + text + '</span>'; }
 
-  function fmtMoney(v) {
-    if (v === null || v === undefined) return '--';
-    if (v >= 1000000) return '$' + (v/1000000).toFixed(2) + 'M';
-    if (v >= 1000)    return '$' + (v/1000).toFixed(0) + 'K';
-    return '$' + v.toFixed(0);
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// CLOCK
+// ─────────────────────────────────────────────────────────────────────────────
+function updateClock() {
+  var now = new Date();
+  var h = now.getUTCHours().toString().padStart(2,'0');
+  var m = now.getUTCMinutes().toString().padStart(2,'0');
+  var s = now.getUTCSeconds().toString().padStart(2,'0');
+  document.getElementById('clock').textContent = h+':'+m+':'+s+' UTC';
+  var y = now.getUTCFullYear();
+  var mo = (now.getUTCMonth()+1).toString().padStart(2,'0');
+  var dy = now.getUTCDate().toString().padStart(2,'0');
+  document.getElementById('date-display').textContent = y+'.'+mo+'.'+dy;
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-  function fmtTs(iso) {
-    if (!iso) return '--';
-    return iso.replace('T',' ').split('.')[0] + ' UTC';
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// COUNTDOWN
+// ─────────────────────────────────────────────────────────────────────────────
+var countdownVal = 30, countdownTimer = null;
+function startCountdown() {
+  clearInterval(countdownTimer);
+  countdownVal = 30;
+  countdownTimer = setInterval(function() {
+    countdownVal--;
+    var el = document.getElementById('countdown');
+    if (el) el.textContent = countdownVal;
+    if (countdownVal <= 0) doRefresh();
+  }, 1000);
+}
 
-  function setEl(id, html, cls) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    // Use textContent for plain text, innerHTML for html with spans
-    el.innerHTML = html;
-    if (cls) {
-      el.className = el.className.replace(/\b(good|bad|warn|neu|dim)\b/g,'').trim();
-      el.classList.add(cls);
+// ─────────────────────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────────────────────
+function setTab(name) {
+  activeTab = name;
+  document.getElementById('view-kpi').className   = 'kpi-view'   + (name === 'kpi'   ? ' active' : '');
+  document.getElementById('view-graph').className = 'graph-view' + (name === 'graph' ? ' active' : '');
+  document.getElementById('tab-kpi').className    = 'tab'   + (name === 'kpi'   ? ' active' : '');
+  document.getElementById('tab-graph').className  = 'tab'   + (name === 'graph' ? ' active' : '');
+  document.getElementById('fk-kpi').className     = 'fkey'  + (name === 'kpi'   ? ' fkey-active' : '');
+  document.getElementById('fk-graph').className   = 'fkey'  + (name === 'graph' ? ' fkey-active' : '');
+  if (name === 'graph') { resizeGraph(); startGraphLoop(); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEGMENT FILTER
+// ─────────────────────────────────────────────────────────────────────────────
+function setSegment(seg) {
+  activeSegment = seg;
+  document.querySelectorAll('.seg-chip').forEach(function(el) {
+    el.classList.toggle('active', el.textContent.trim() === seg || el.textContent.trim() === 'ALL' && seg === 'ALL');
+  });
+  // Re-fetch KPIs with segment context (pass as query param where supported)
+  fetchKPIs();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEALTH
+// ─────────────────────────────────────────────────────────────────────────────
+function fetchHealth() {
+  return fetch('/health').then(function(r){return r.json();}).then(function(d) {
+    var ok = d.status === 'healthy', deg = d.status === 'degraded';
+    var sc = ok ? 'pos' : (deg ? 'warn' : 'neg');
+    setEl('sys-status', cls('&#9679;&nbsp;' + d.status.toUpperCase(), sc));
+    var det = d.details || {};
+    function dot(v) { return cls('&#9679;&nbsp;' + (v||'--').toUpperCase(), v === 'ok' ? 'pos' : 'neg'); }
+    setEl('sys-cassandra', dot(det.cassandra));
+    setEl('sys-presto',    dot(det.presto));
+    setEl('sys-models',    dot(det.model_files));
+    setEl('h-api',       cls('&#9679;&nbsp;' + d.status.toUpperCase(), sc));
+    setEl('h-cassandra', dot(det.cassandra));
+    setEl('h-presto',    dot(det.presto));
+    setEl('h-models',    dot(det.model_files));
+    if (det.timestamp) setEl('h-updated', fmtTs(det.timestamp));
+  }).catch(function() { setEl('sys-status', cls('&#9679;&nbsp;UNREACHABLE', 'neg')); });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KPIs
+// ─────────────────────────────────────────────────────────────────────────────
+function fetchKPIs() {
+  var url = '/api/v1/dashboard/summary';
+  if (activeSegment !== 'ALL') url += '?segment=' + activeSegment.toLowerCase();
+  return fetch(url).then(function(r){return r.json();}).then(function(d) {
+    kpiData = d;
+    setEl('v-churn-rate', fmt(d.churn_rate,1) + '%');
+    var cd = d.churn_rate_change;
+    setEl('v-churn-delta', cls((cd>0?'&#9650;&nbsp;+':'&#9660;&nbsp;')+fmt(Math.abs(cd),2)+' pp', cd>0?'neg':'pos'));
+    setEl('v-ltv', fmtMoney(d.avg_ltv));
+    var ld = d.ltv_change_pct;
+    setEl('v-ltv-delta', cls((ld>0?'&#9650;&nbsp;+':'&#9660;&nbsp;')+fmt(Math.abs(ld),2)+'%', ld>0?'pos':'neg'));
+    setEl('v-cart-rate',    fmt(d.cart_recovery_rate,1) + '%');
+    setEl('v-pricing-lift', (d.pricing_lift_pct>0?'+':'')+fmt(d.pricing_lift_pct,1)+'%');
+    setEl('v-recovery-rev', cls(fmtMoney(d.cart_recovery_revenue), 'pos'));
+    setEl('v-incr-rev',     cls(fmtMoney(d.total_incremental_revenue), 'pos'));
+    setEl('v-int-cost',     cls(fmtMoney(d.total_interventions_cost), 'neg'));
+    var roi = d.roi_multiplier;
+    setEl('v-roi', cls(fmt(roi,1)+'x', roi>=3?'pos':(roi>=1.5?'warn':'neg'))+'&nbsp;'+bar(Math.min(roi,10),10,8));
+    updateTicker(d);
+    if (activeTab === 'graph') updateGraphFromData(d, null);
+  }).catch(function(e){ console.error('KPIs', e); });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+function fetchModels() {
+  return fetch('/api/v1/models/performance').then(function(r){return r.json();}).then(function(d) {
+    var ca = d.churn_model_auc;
+    setEl('m-churn-auc', cls(fmt(ca,3), ca>=0.8?'pos':'warn')+'&nbsp;'+bar(ca,1,8));
+    var segs = d.churn_model_auc_by_segment || [];
+    function seg(name) { for(var i=0;i<segs.length;i++) if(segs[i].segment_name===name) return segs[i].accuracy_metric; return null; }
+    var sn=seg('new_customers'),sv=seg('high_value'),sm=seg('mobile');
+    setEl('m-seg-new', sn!==null?fmt(sn,3):'--');
+    setEl('m-seg-hv',  sv!==null?fmt(sv,3):'--');
+    setEl('m-seg-mob', sm!==null?fmt(sm,3):'--');
+    var ltv = d.ltv_model_mae;
+    setEl('m-ltv-mae', cls('$'+fmt(ltv,1), ltv<=50?'pos':'warn')+'&nbsp;'+bar(1-ltv/100,1,8));
+    var cohorts = d.ltv_model_mae_by_cohort || [];
+    function coh(name) { for(var i=0;i<cohorts.length;i++) if(cohorts[i].segment_name===name) return cohorts[i].accuracy_metric; return null; }
+    setEl('m-cohort-q1', coh('2024_q1')!==null?'$'+fmt(coh('2024_q1'),1):'--');
+    setEl('m-cohort-q2', coh('2024_q2')!==null?'$'+fmt(coh('2024_q2'),1):'--');
+    var ra = d.recovery_model_auc;
+    setEl('m-rec-auc', cls(fmt(ra,3), ra>=0.75?'pos':'warn')+'&nbsp;'+bar(ra,1,8));
+    var el = d.elasticity_accuracy;
+    setEl('m-elastic', cls(fmt(el,1)+'%', el>=85?'pos':'warn')+'&nbsp;'+bar(el,100,8));
+    setEl('m-drift', d.drift_detected ? badge('&#9888;&nbsp;DRIFT DETECTED','red') : badge('&#10003;&nbsp;CLEAN','green'));
+    setEl('m-eval-time', fmtTs(d.last_evaluated_iso));
+    if (activeTab === 'graph') updateGraphFromData(null, d);
+  }).catch(function(e){ console.error('Models', e); });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FRESHNESS
+// ─────────────────────────────────────────────────────────────────────────────
+function fetchFreshness() {
+  return fetch('/api/v1/system/data-freshness').then(function(r){return r.json();}).then(function(d) {
+    var cassMin=d.cassandra_last_refresh_minutes_ago, cassSla=d.cassandra_sla_minutes, cassOk=cassMin<=cassSla;
+    setEl('f-cassandra', cassMin+' min ago&nbsp;&nbsp;'+(cassOk?badge('&#9679;&nbsp;OK','green'):badge('&#9679;&nbsp;STALE','red')));
+    var iceHrs=d.iceberg_last_refresh_hours_ago, iceSla=d.iceberg_sla_hours, iceOk=iceHrs<=iceSla;
+    setEl('f-iceberg', iceHrs+' hrs ago&nbsp;&nbsp;'+(iceOk?badge('&#9679;&nbsp;OK','green'):badge('&#9679;&nbsp;STALE','red')));
+    setEl('f-churn',   d.churn_scores_last_computed_hours_ago+' hrs ago');
+    setEl('f-ltv',     d.ltv_predictions_last_computed_hours_ago+' hrs ago');
+    setEl('f-pricing', d.pricing_recommendations_last_computed_hours_ago+' hrs ago');
+    setEl('f-sla', d.within_sla?badge('&#10003;&nbsp;WITHIN SLA','green'):badge('&#9888;&nbsp;SLA BREACH','red'));
+    setEl('f-cassandra-sla', cassSla+' min');
+    setEl('f-iceberg-sla',   iceSla+' hrs');
+  }).catch(function(e){ console.error('Freshness', e); });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TICKER
+// ─────────────────────────────────────────────────────────────────────────────
+function updateTicker(d) {
+  var sep = '<span class="ticker-sep">&nbsp;&#9474;&nbsp;</span>';
+  var html = sep
+    +'<span class="ticker-lbl">CHURN</span>&nbsp;<span class="'+(d.churn_rate_change>0?'ticker-neg':'ticker-pos')+'">'+fmt(d.churn_rate,1)+'%&nbsp;'+(d.churn_rate_change>0?'&#9650;':'&#9660;')+'</span>'
+    +sep+'<span class="ticker-lbl">AVG LTV</span>&nbsp;<span class="'+(d.ltv_change_pct>0?'ticker-pos':'ticker-neg')+'">'+fmtMoney(d.avg_ltv)+'&nbsp;'+(d.ltv_change_pct>0?'&#9650;':'&#9660;')+'</span>'
+    +sep+'<span class="ticker-lbl">CART RECOVERY</span>&nbsp;<span class="ticker-val">'+fmt(d.cart_recovery_rate,1)+'%</span>'
+    +sep+'<span class="ticker-lbl">PRICING LIFT</span>&nbsp;<span class="ticker-pos">+'+fmt(d.pricing_lift_pct,1)+'%</span>'
+    +sep+'<span class="ticker-lbl">ROI</span>&nbsp;<span class="ticker-pos">'+fmt(d.roi_multiplier,1)+'x</span>'
+    +sep+'<span class="ticker-lbl">INCR REV</span>&nbsp;<span class="ticker-val">'+fmtMoney(d.total_incremental_revenue)+'</span>'
+    +sep+'<span class="ticker-lbl">INT COST</span>&nbsp;<span class="ticker-neg">'+fmtMoney(d.total_interventions_cost)+'</span>'
+    +sep;
+  var el = document.getElementById('ticker-text');
+  if (el) el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DRILL-THROUGH MODALS
+// ─────────────────────────────────────────────────────────────────────────────
+var drillConfig = {
+  'churn-rate': {
+    title: 'CHURN RISK — CUSTOMER BREAKDOWN',
+    fetch: function() {
+      var url = '/api/v1/churn/customers?tier=high';
+      if (activeSegment !== 'ALL') url += '&segment=' + activeSegment.toLowerCase();
+      return fetch(url).then(function(r){return r.json();});
+    },
+    render: function(d) {
+      var rows = Array.isArray(d) ? d : (d.customers || d.data || []);
+      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>CHURN SCORE</th><th>TIER</th><th>RECOMMENDED ACTION</th></tr></thead><tbody>';
+      rows.slice(0,50).forEach(function(r) {
+        var score = r.churn_score || r.risk_score || '--';
+        var tier  = r.churn_tier || r.tier || '--';
+        var tierCls = tier==='high'?'neg':(tier==='medium'?'warn':'pos');
+        html += '<tr><td class="cyn">'+r.customer_id+'</td>'
+              + '<td>'+cls(score,'warn')+'</td>'
+              + '<td>'+cls(tier.toUpperCase(),tierCls)+'</td>'
+              + '<td class="dim">'+(r.recommended_action||'--')+'</td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+  },
+  'ltv': {
+    title: 'HIGH-VALUE CUSTOMER COHORTS',
+    fetch: function() { return fetch('/api/v1/ltv/cohorts/high-value').then(function(r){return r.json();}); },
+    render: function(d) {
+      var rows = Array.isArray(d) ? d : (d.cohorts || d.data || []);
+      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      var html = '<table class="modal-table"><thead><tr><th>COHORT</th><th>AVG LTV</th><th>SIZE</th><th>LTV 30D</th><th>LTV 90D</th></tr></thead><tbody>';
+      rows.slice(0,30).forEach(function(r) {
+        html += '<tr><td class="yellow">'+r.cohort_name+'</td>'
+              + '<td class="pos">'+fmtMoney(r.avg_ltv)+'</td>'
+              + '<td>'+r.customer_count+'</td>'
+              + '<td>'+fmtMoney(r.avg_ltv_30d)+'</td>'
+              + '<td>'+fmtMoney(r.avg_ltv_90d)+'</td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+  },
+  'carts': {
+    title: 'ABANDONED CARTS — RECOVERY QUEUE',
+    fetch: function() { return fetch('/api/v1/carts/abandoned').then(function(r){return r.json();}); },
+    render: function(d) {
+      var rows = Array.isArray(d) ? d : (d.carts || d.data || []);
+      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      var html = '<table class="modal-table"><thead><tr><th>CUSTOMER</th><th>PRODUCT</th><th>CART VALUE</th><th>RECOVERY SCORE</th><th>TOP REASON</th></tr></thead><tbody>';
+      rows.slice(0,40).forEach(function(r) {
+        var score = r.recovery_likelihood || r.recovery_score || '--';
+        var scoreCls = score >= 70 ? 'pos' : (score >= 40 ? 'warn' : 'neg');
+        html += '<tr><td class="cyn">'+r.customer_id+'</td>'
+              + '<td>'+r.product_id+'</td>'
+              + '<td class="pos">'+fmtMoney(r.cart_value)+'</td>'
+              + '<td>'+cls(fmt(score,1)+'%', scoreCls)+'</td>'
+              + '<td class="dim">'+(r.top_abandonment_reason||r.primary_reason||'--')+'</td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+  },
+  'pricing': {
+    title: 'PRICING RECOMMENDATIONS',
+    fetch: function() { return fetch('/api/v1/pricing/dashboard').then(function(r){return r.json();}); },
+    render: function(d) {
+      var rows = Array.isArray(d) ? d : (d.recommendations || d.data || []);
+      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      var html = '<table class="modal-table"><thead><tr><th>PRODUCT</th><th>CURRENT PRICE</th><th>REC PRICE</th><th>DISCOUNT</th><th>REVENUE IMPACT</th></tr></thead><tbody>';
+      rows.slice(0,40).forEach(function(r) {
+        var disc = r.recommended_discount_pct || r.discount_pct || 0;
+        html += '<tr><td class="yellow">'+r.product_id+'</td>'
+              + '<td>'+fmtMoney(r.current_price)+'</td>'
+              + '<td class="pos">'+fmtMoney(r.recommended_price)+'</td>'
+              + '<td class="warn">'+fmt(disc,1)+'%</td>'
+              + '<td class="pos">'+fmtMoney(r.revenue_impact)+'</td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+  },
+  'churn-model': {
+    title: 'CHURN MODEL — SEGMENT PERFORMANCE',
+    fetch: function() { return fetch('/api/v1/models/performance').then(function(r){return r.json();}); },
+    render: function(d) {
+      var segs = d.churn_model_auc_by_segment || [];
+      var html = '<table class="modal-table"><thead><tr><th>SEGMENT</th><th>AUC</th><th>BAR</th></tr></thead><tbody>';
+      segs.forEach(function(s) {
+        var auc = s.accuracy_metric;
+        html += '<tr><td class="yellow">'+s.segment_name.toUpperCase().replace('_',' ')+'</td>'
+              + '<td>'+cls(fmt(auc,3), auc>=0.8?'pos':'warn')+'</td>'
+              + '<td>'+bar(auc,1,16)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+      html += '<div style="padding:8px 0;color:var(--grey);font-size:10px">OVERALL AUC: <span class="pos">'+fmt(d.churn_model_auc,3)+'</span> &nbsp;|&nbsp; DRIFT: '+(d.drift_detected?badge('&#9888; DETECTED','red'):badge('&#10003; CLEAN','green'))+'</div>';
+      return html;
+    }
+  },
+  'ltv-model': {
+    title: 'LTV MODEL — COHORT ACCURACY',
+    fetch: function() { return fetch('/api/v1/models/performance').then(function(r){return r.json();}); },
+    render: function(d) {
+      var cohorts = d.ltv_model_mae_by_cohort || [];
+      var html = '<table class="modal-table"><thead><tr><th>COHORT</th><th>MAE ($)</th><th>BAR</th></tr></thead><tbody>';
+      cohorts.forEach(function(c) {
+        var mae = c.accuracy_metric;
+        html += '<tr><td class="yellow">'+c.segment_name.toUpperCase().replace('_',' ')+'</td>'
+              + '<td>'+cls('$'+fmt(mae,1), mae<=50?'pos':'warn')+'</td>'
+              + '<td>'+bar(1-mae/150,1,16)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+      html += '<div style="padding:8px 0;color:var(--grey);font-size:10px">OVERALL MAE: <span class="pos">$'+fmt(d.ltv_model_mae,1)+'</span></div>';
+      return html;
+    }
+  },
+  'recovery-model': {
+    title: 'CART RECOVERY MODEL — PERFORMANCE',
+    fetch: function() { return fetch('/api/v1/models/performance').then(function(r){return r.json();}); },
+    render: function(d) {
+      return '<div style="padding:10px 0">'
+        +'<div class="c360-row"><span class="c360-key">RECOVERY MODEL AUC</span><span class="c360-val pos">'+fmt(d.recovery_model_auc,3)+'</span></div>'
+        +'<div class="c360-row"><span class="c360-key">ELASTICITY ACCURACY</span><span class="c360-val pos">'+fmt(d.elasticity_accuracy,1)+'%</span></div>'
+        +'<div class="c360-row"><span class="c360-key">DRIFT STATUS</span><span class="c360-val">'+(d.drift_detected?badge('DETECTED','red'):badge('CLEAN','green'))+'</span></div>'
+        +'<div class="c360-row"><span class="c360-key">LAST EVALUATED</span><span class="c360-val cyn">'+fmtTs(d.last_evaluated_iso)+'</span></div>'
+        +'</div>';
+    }
+  }
+};
+
+function drillDown(key) {
+  var cfg = drillConfig[key];
+  if (!cfg) return;
+  setEl('modal-title', cfg.title);
+  setEl('modal-body', '<div class="modal-loading">LOADING&#133;</div>');
+  document.getElementById('drill-modal').classList.add('open');
+  cfg.fetch().then(function(d) {
+    setEl('modal-body', cfg.render(d));
+  }).catch(function(e) {
+    setEl('modal-body', '<div class="modal-loading neg">ERROR: '+e.message+'</div>');
+  });
+}
+function closeDrill(e) { if(e.target===document.getElementById('drill-modal')) closeDrillForce(); }
+function closeDrillForce() { document.getElementById('drill-modal').classList.remove('open'); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CUSTOMER 360
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleC360() {
+  var bar = document.getElementById('c360-search');
+  if (bar.classList.contains('open')) {
+    closeC360();
+  } else {
+    bar.classList.add('open');
+    document.getElementById('c360-input').focus();
+  }
+}
+function closeC360() {
+  document.getElementById('c360-search').classList.remove('open');
+  document.getElementById('c360-panel').classList.remove('open');
+  document.getElementById('c360-input').value = '';
+}
+function lookupCustomer(id) {
+  if (!id) return;
+  setEl('c360-panel-title', 'CUSTOMER 360 — ' + id);
+  setEl('c360-content', '<div class="modal-loading" style="padding:30px">FETCHING&#133;</div>');
+  document.getElementById('c360-panel').classList.add('open');
+  fetch('/api/v1/dashboard/customer/' + encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(d) { setEl('c360-content', renderC360(d)); })
+    .catch(function(e) { setEl('c360-content', '<div class="modal-loading neg" style="padding:30px">NOT FOUND</div>'); });
+}
+function renderC360(d) {
+  function sec(title, rows) {
+    var html = '<div class="c360-section"><div class="c360-sec-title">'+title+'</div>';
+    rows.forEach(function(r) {
+      html += '<div class="c360-row"><span class="c360-key">'+r[0]+'</span><span class="c360-val '+( r[2]||'')+'">'+r[1]+'</span></div>';
+    });
+    return html + '</div>';
+  }
+  var churn = d.churn || {};
+  var ltv   = d.ltv   || {};
+  var cart  = d.cart  || {};
+  var inter = d.intervention || d.recommended_action || {};
+  var score  = churn.churn_score || '--';
+  var scoreCls = score >= 70 ? 'neg' : (score >= 40 ? 'warn' : 'pos');
+
+  var html = sec('IDENTITY', [
+    ['CUSTOMER ID', d.customer_id || '--', 'cyn'],
+    ['SEGMENT',     d.segment || '--', ''],
+    ['CHANNEL',     d.channel || '--', '']
+  ]);
+  html += sec('CHURN RISK', [
+    ['SCORE',  fmt(score,1), scoreCls],
+    ['TIER',   (churn.churn_tier||'--').toUpperCase(), scoreCls],
+    ['DELTA',  (churn.churn_score_change>0?'+':'')+fmt(churn.churn_score_change,1)+' pp', '']
+  ]);
+  html += sec('LIFETIME VALUE', [
+    ['CURRENT LTV', fmtMoney(ltv.current_ltv), 'pos'],
+    ['30-DAY',      fmtMoney(ltv.ltv_30d), ''],
+    ['90-DAY',      fmtMoney(ltv.ltv_90d), ''],
+    ['1-YEAR',      fmtMoney(ltv.ltv_1yr), '']
+  ]);
+  if (cart && cart.has_abandoned_cart) {
+    html += sec('ABANDONED CART', [
+      ['PRODUCT',        cart.product_id||'--', 'yellow'],
+      ['VALUE',          fmtMoney(cart.cart_value), 'pos'],
+      ['RECOVERY SCORE', fmt(cart.recovery_likelihood,1)+'%', 'warn'],
+      ['TOP REASON',     cart.top_abandonment_reason||'--', 'dim']
+    ]);
+  }
+  var rec = typeof inter === 'string' ? inter : (inter.action || inter.recommended_action || '--');
+  html += sec('RECOMMENDED ACTION', [['ACTION', rec, 'org']]);
+  return html;
+}
+
+document.getElementById('c360-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var id = this.value.trim();
+    if (id) lookupCustomer(id);
+    document.getElementById('c360-search').classList.remove('open');
+  } else if (e.key === 'Escape') {
+    closeC360();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KNOWLEDGE GRAPH — FORCE-DIRECTED CANVAS
+// ─────────────────────────────────────────────────────────────────────────────
+var graphNodes = [
+  // Segments (cyan)
+  { id:'seg-all',    label:'ALL\nCUSTOMERS',   type:'segment',      x:0,y:0,vx:0,vy:0, radius:28 },
+  { id:'seg-new',    label:'NEW\nCUSTOMERS',   type:'segment',      x:0,y:0,vx:0,vy:0, radius:22 },
+  { id:'seg-hv',     label:'HIGH\nVALUE',      type:'segment',      x:0,y:0,vx:0,vy:0, radius:24 },
+  { id:'seg-mob',    label:'MOBILE',           type:'segment',      x:0,y:0,vx:0,vy:0, radius:18 },
+  // Risk factors (yellow)
+  { id:'f-days',     label:'DAYS SINCE\nPURCHASE', type:'factor',  x:0,y:0,vx:0,vy:0, radius:20 },
+  { id:'f-freq',     label:'ORDER\nFREQUENCY', type:'factor',      x:0,y:0,vx:0,vy:0, radius:20 },
+  { id:'f-support',  label:'SUPPORT\nTICKETS', type:'factor',      x:0,y:0,vx:0,vy:0, radius:18 },
+  { id:'f-session',  label:'SESSION\nTIME',    type:'factor',      x:0,y:0,vx:0,vy:0, radius:16 },
+  { id:'f-cart',     label:'CART\nVALUE',      type:'factor',      x:0,y:0,vx:0,vy:0, radius:18 },
+  // Interventions (orange)
+  { id:'i-email',    label:'EMAIL\nCAMPAIGN',  type:'intervention', x:0,y:0,vx:0,vy:0, radius:20 },
+  { id:'i-vip',      label:'VIP\nUPGRADE',     type:'intervention', x:0,y:0,vx:0,vy:0, radius:18 },
+  { id:'i-discount', label:'DISCOUNT\nOFFER',  type:'intervention', x:0,y:0,vx:0,vy:0, radius:20 },
+  { id:'i-recovery', label:'CART\nRECOVERY',   type:'intervention', x:0,y:0,vx:0,vy:0, radius:22 },
+  // Outcomes (green)
+  { id:'o-revenue',  label:'REVENUE\n+$370K',  type:'outcome',      x:0,y:0,vx:0,vy:0, radius:26 },
+  { id:'o-churn',    label:'CHURN\nREDUCED',   type:'outcome',      x:0,y:0,vx:0,vy:0, radius:24 },
+  { id:'o-ltv',      label:'LTV\n+$520',       type:'outcome',      x:0,y:0,vx:0,vy:0, radius:22 }
+];
+
+var graphEdges = [
+  // Factors → Segments (what drives risk in each segment)
+  { s:'f-days',    t:'seg-all',  w:0.9 },
+  { s:'f-freq',    t:'seg-all',  w:0.8 },
+  { s:'f-support', t:'seg-new',  w:0.7 },
+  { s:'f-session', t:'seg-mob',  w:0.75 },
+  { s:'f-cart',    t:'seg-hv',   w:0.85 },
+  { s:'f-days',    t:'seg-new',  w:0.6 },
+  { s:'f-freq',    t:'seg-hv',   w:0.7 },
+  // Segments → Interventions (which intervention targets which segment)
+  { s:'seg-all',   t:'i-email',    w:0.85 },
+  { s:'seg-hv',    t:'i-vip',      w:0.9 },
+  { s:'seg-new',   t:'i-discount', w:0.75 },
+  { s:'seg-all',   t:'i-recovery', w:0.8 },
+  { s:'seg-mob',   t:'i-email',    w:0.6 },
+  // Interventions → Outcomes
+  { s:'i-email',    t:'o-churn',   w:0.7 },
+  { s:'i-vip',      t:'o-ltv',     w:0.85 },
+  { s:'i-discount', t:'o-revenue', w:0.75 },
+  { s:'i-recovery', t:'o-revenue', w:0.9 },
+  { s:'i-recovery', t:'o-churn',   w:0.6 },
+  { s:'i-vip',      t:'o-revenue', w:0.7 }
+];
+
+var nodeColors = { segment:'#00ccff', factor:'#ffcc00', intervention:'#ff6600', outcome:'#00ff41' };
+
+var graphInited = false, graphAnimFrame = null, graphRunning = false;
+var dragNode = null, dragOffX = 0, dragOffY = 0;
+var graphScale = 1, graphOffX = 0, graphOffY = 0;
+var hoveredNode = null, selectedNode = null;
+
+function resizeGraph() {
+  var canvas = document.getElementById('graph-canvas');
+  var view   = document.getElementById('view-graph');
+  if (!view || !canvas) return;
+  canvas.width  = view.clientWidth  || window.innerWidth;
+  canvas.height = (view.clientHeight || window.innerHeight) - 28;
+}
+
+function initGraphPositions() {
+  var canvas = document.getElementById('graph-canvas');
+  var W = canvas.width, H = canvas.height;
+  var cx = W/2, cy = H/2;
+  // Arrange in 4 concentric rings by type
+  var typeOrder = ['factor','segment','intervention','outcome'];
+  var radii     = [Math.min(W,H)*0.18, Math.min(W,H)*0.10, Math.min(W,H)*0.28, Math.min(W,H)*0.40];
+  typeOrder.forEach(function(type, ti) {
+    var typeNodes = graphNodes.filter(function(n){ return n.type===type; });
+    typeNodes.forEach(function(n, i) {
+      var angle = (2*Math.PI*i/typeNodes.length) - Math.PI/2 + ti*0.3;
+      n.x = cx + radii[ti]*Math.cos(angle) + (Math.random()-0.5)*20;
+      n.y = cy + radii[ti]*Math.sin(angle) + (Math.random()-0.5)*20;
+      n.vx = 0; n.vy = 0;
+    });
+  });
+  graphInited = true;
+}
+
+function tickGraph() {
+  var canvas = document.getElementById('graph-canvas');
+  var W = canvas.width, H = canvas.height;
+  var REPULSION = 3200, SPRING_K = 0.06, REST_LEN = 110, DAMPING = 0.82, GRAVITY = 0.01;
+  var cx = W/2, cy = H/2;
+
+  // Build index
+  var idx = {};
+  graphNodes.forEach(function(n){ idx[n.id]=n; });
+
+  // Repulsion between all pairs
+  for (var i=0; i<graphNodes.length; i++) {
+    for (var j=i+1; j<graphNodes.length; j++) {
+      var a=graphNodes[i], b=graphNodes[j];
+      var dx=b.x-a.x, dy=b.y-a.y;
+      var dist=Math.sqrt(dx*dx+dy*dy)||0.1;
+      var force=REPULSION/(dist*dist);
+      var fx=force*(dx/dist), fy=force*(dy/dist);
+      a.vx-=fx; a.vy-=fy;
+      b.vx+=fx; b.vy+=fy;
     }
   }
 
-  function span(text, cls) {
-    return '<span class="' + cls + '">' + text + '</span>';
-  }
-
-  // ── Clock ──────────────────────────────────────────────────────────────
-  function updateClock() {
-    var now = new Date();
-    var h = now.getUTCHours().toString().padStart(2,'0');
-    var m = now.getUTCMinutes().toString().padStart(2,'0');
-    var s = now.getUTCSeconds().toString().padStart(2,'0');
-    document.getElementById('clock').textContent = h+':'+m+':'+s+' UTC';
-  }
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  // ── Countdown ─────────────────────────────────────────────────────────
-  var countdownVal = 30;
-  var countdownTimer = null;
-
-  function startCountdown() {
-    clearInterval(countdownTimer);
-    countdownVal = 30;
-    countdownTimer = setInterval(function() {
-      countdownVal--;
-      var el = document.getElementById('countdown');
-      if (el) el.textContent = countdownVal;
-      if (countdownVal <= 0) doRefresh();
-    }, 1000);
-  }
-
-  // ── Health ────────────────────────────────────────────────────────────
-  function fetchHealth() {
-    return fetch('/health').then(function(r) { return r.json(); }).then(function(d) {
-      var ok = d.status === 'healthy';
-      var cc = ok ? 'good' : (d.status === 'degraded' ? 'warn' : 'bad');
-      setEl('sys-status', '● ' + d.status.toUpperCase(), cc);
-
-      var det = d.details || {};
-      var cassOk = det.cassandra === 'ok';
-      var prestoOk = det.presto === 'ok';
-      var modelOk = det.model_files === 'ok';
-
-      setEl('sys-cassandra',  span('● '+(det.cassandra||'--').toUpperCase(), cassOk?'good':'bad'));
-      setEl('sys-presto',     span('● '+(det.presto||'--').toUpperCase(),    prestoOk?'good':'bad'));
-      setEl('sys-models',     span('● '+(det.model_files||'--').toUpperCase(), modelOk?'good':'bad'));
-      setEl('h-api',          span('● '+d.status.toUpperCase(),  ok?'good':'bad'));
-      setEl('h-cassandra',    span('● '+(det.cassandra||'--').toUpperCase(), cassOk?'good':'bad'));
-      setEl('h-presto',       span('● '+(det.presto||'--').toUpperCase(),    prestoOk?'good':'bad'));
-      setEl('h-models',       span('● '+(det.model_files||'--').toUpperCase(), modelOk?'good':'bad'));
-      if (det.timestamp) setEl('h-updated', fmtTs(det.timestamp), 'dim');
-    }).catch(function() {
-      setEl('sys-status', span('● UNREACHABLE', 'bad'));
-    });
-  }
-
-  // ── KPIs ──────────────────────────────────────────────────────────────
-  var lastKPIs = null;
-
-  function fetchKPIs() {
-    return fetch('/api/v1/dashboard/summary').then(function(r) { return r.json(); }).then(function(d) {
-      lastKPIs = d;
-
-      setEl('v-churn-rate', fmt(d.churn_rate,1)+'%', 'neu');
-
-      var cd = d.churn_rate_change;
-      var cdStr = (cd > 0 ? '▲ +' : '▼ ') + fmt(Math.abs(cd),2) + ' pp';
-      setEl('v-churn-delta', cdStr, cd > 0 ? 'bad' : 'good');
-
-      setEl('v-ltv', fmtMoney(d.avg_ltv), 'neu');
-
-      var ld = d.ltv_change_pct;
-      var ldStr = (ld > 0 ? '▲ +' : '▼ ') + fmt(Math.abs(ld),2) + '%';
-      setEl('v-ltv-delta', ldStr, ld > 0 ? 'good' : 'bad');
-
-      setEl('v-cart-rate',    fmt(d.cart_recovery_rate,1)+'%', 'neu');
-      setEl('v-pricing-lift', (d.pricing_lift_pct>0?'+':'')+fmt(d.pricing_lift_pct,1)+'%', 'neu');
-
-      setEl('v-recovery-rev', fmtMoney(d.cart_recovery_revenue), 'good');
-      setEl('v-incr-rev',     fmtMoney(d.total_incremental_revenue), 'good');
-      setEl('v-int-cost',     fmtMoney(d.total_interventions_cost), 'bad');
-
-      var roi = d.roi_multiplier;
-      var roiCls = roi >= 3 ? 'good' : (roi >= 1.5 ? 'neu' : 'bad');
-      var roiBar = bar(Math.min(roi, 10), 10);
-      setEl('v-roi', span(fmt(roi,1)+'x', roiCls) + ' <span class="mbar">'+roiBar+'</span>');
-
-      updateTicker(d);
-    }).catch(function(e) {
-      console.error('KPI fetch failed', e);
-    });
-  }
-
-  // ── Models ────────────────────────────────────────────────────────────
-  function fetchModels() {
-    return fetch('/api/v1/models/performance').then(function(r) { return r.json(); }).then(function(d) {
-      var ca = d.churn_model_auc;
-      setEl('m-churn-auc',
-        span(fmt(ca,3), ca>=0.8?'good':'warn') + ' <span class="mbar">'+bar(ca,1)+'</span>');
-
-      var segs = d.churn_model_auc_by_segment || [];
-      function findSeg(name) {
-        for (var i=0; i<segs.length; i++) if(segs[i].segment_name===name) return segs[i].accuracy_metric;
-        return null;
-      }
-      var sn = findSeg('new_customers');
-      var sv = findSeg('high_value');
-      var sm = findSeg('mobile');
-      setEl('m-seg-new', sn!==null ? fmt(sn,3) : '--', 'dim');
-      setEl('m-seg-hv',  sv!==null ? fmt(sv,3) : '--', 'dim');
-      setEl('m-seg-mob', sm!==null ? fmt(sm,3) : '--', 'dim');
-
-      var ltv = d.ltv_model_mae;
-      setEl('m-ltv-mae',
-        span('$'+fmt(ltv,1), ltv<=50?'good':'warn') + ' <span class="mbar">'+bar(1-(ltv/100),1)+'</span>');
-
-      var cohorts = d.ltv_model_mae_by_cohort || [];
-      function findCohort(name) {
-        for (var i=0; i<cohorts.length; i++) if(cohorts[i].segment_name===name) return cohorts[i].accuracy_metric;
-        return null;
-      }
-      var q1 = findCohort('2024_q1');
-      var q2 = findCohort('2024_q2');
-      setEl('m-cohort-q1', q1!==null ? '$'+fmt(q1,1) : '--', 'dim');
-      setEl('m-cohort-q2', q2!==null ? '$'+fmt(q2,1) : '--', 'dim');
-
-      var ra = d.recovery_model_auc;
-      setEl('m-rec-auc',
-        span(fmt(ra,3), ra>=0.75?'good':'warn') + ' <span class="mbar">'+bar(ra,1)+'</span>');
-
-      var el = d.elasticity_accuracy;
-      setEl('m-elastic',
-        span(fmt(el,1)+'%', el>=85?'good':'warn') + ' <span class="mbar">'+bar(el,100)+'</span>');
-
-      var drift = d.drift_detected;
-      setEl('m-drift',
-        drift ? ('⚠ ' + (d.drift_alert_msg||'DRIFT DETECTED')) : '✓ NO DRIFT',
-        drift ? 'bad' : 'good');
-
-      setEl('m-eval-time', fmtTs(d.last_evaluated_iso), 'dim');
-    }).catch(function(e) {
-      console.error('Models fetch failed', e);
-    });
-  }
-
-  // ── Freshness ─────────────────────────────────────────────────────────
-  function fetchFreshness() {
-    return fetch('/api/v1/system/data-freshness').then(function(r) { return r.json(); }).then(function(d) {
-      var cassMin = d.cassandra_last_refresh_minutes_ago;
-      var cassSla = d.cassandra_sla_minutes;
-      var cassOk  = cassMin <= cassSla;
-      setEl('f-cassandra',
-        span(cassMin+' min ago  '+( cassOk?'● OK':'● STALE'), cassOk?'good':'bad'));
-
-      var iceHrs = d.iceberg_last_refresh_hours_ago;
-      var iceSla  = d.iceberg_sla_hours;
-      var iceOk   = iceHrs <= iceSla;
-      setEl('f-iceberg',
-        span(iceHrs+' hrs ago  '+(iceOk?'● OK':'● STALE'), iceOk?'good':'bad'));
-
-      setEl('f-churn',   d.churn_scores_last_computed_hours_ago  + ' hrs ago', 'neu');
-      setEl('f-ltv',     d.ltv_predictions_last_computed_hours_ago + ' hrs ago', 'neu');
-      setEl('f-pricing', d.pricing_recommendations_last_computed_hours_ago + ' hrs ago', 'neu');
-
-      var sla = d.within_sla;
-      setEl('f-sla', sla ? '✓ WITHIN SLA' : '⚠ SLA BREACH', sla?'good':'bad');
-      setEl('f-cassandra-sla', 'THRESHOLD: '+cassSla+' min', 'dim');
-      setEl('f-iceberg-sla',   'THRESHOLD: '+iceSla+' hrs', 'dim');
-    }).catch(function(e) {
-      console.error('Freshness fetch failed', e);
-    });
-  }
-
-  // ── Ticker ────────────────────────────────────────────────────────────
-  function updateTicker(d) {
-    var churnDir = d.churn_rate_change > 0 ? '▲' : '▼';
-    var ltvDir   = d.ltv_change_pct > 0   ? '▲' : '▼';
-    var parts = [
-      '■ CHURN RATE: ' + fmt(d.churn_rate,1) + '% ' + churnDir,
-      '■ AVG LTV: ' + fmtMoney(d.avg_ltv) + ' ' + ltvDir,
-      '■ CART RECOVERY: ' + fmt(d.cart_recovery_rate,1) + '%',
-      '■ PRICING LIFT: +' + fmt(d.pricing_lift_pct,1) + '%',
-      '■ ROI: ' + fmt(d.roi_multiplier,1) + 'x',
-      '■ INCREMENTAL REV: ' + fmtMoney(d.total_incremental_revenue),
-      '■ RECOVERY REV: ' + fmtMoney(d.cart_recovery_revenue),
-      '■ INTERVENTION COST: ' + fmtMoney(d.total_interventions_cost),
-    ];
-    var el = document.getElementById('ticker-text');
-    if (el) el.textContent = '   ' + parts.join('   ') + '   ';
-  }
-
-  // ── Last refresh ──────────────────────────────────────────────────────
-  function setLastRefresh() {
-    var now = new Date();
-    var h = now.getUTCHours().toString().padStart(2,'0');
-    var m = now.getUTCMinutes().toString().padStart(2,'0');
-    var s = now.getUTCSeconds().toString().padStart(2,'0');
-    var el = document.getElementById('last-refresh');
-    if (el) el.textContent = h+':'+m+':'+s;
-  }
-
-  // ── Main refresh ──────────────────────────────────────────────────────
-  function doRefresh() {
-    Promise.all([
-      fetchHealth(),
-      fetchKPIs(),
-      fetchModels(),
-      fetchFreshness(),
-    ]).then(function() {
-      setLastRefresh();
-      startCountdown();
-    });
-  }
-
-  // ── Keyboard shortcuts ────────────────────────────────────────────────
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'F5' || e.key === 'F8') { e.preventDefault(); doRefresh(); }
-    if (e.key === 'F1') { e.preventDefault(); window.open('/docs','_blank'); }
+  // Spring forces along edges
+  graphEdges.forEach(function(e) {
+    var a=idx[e.s], b=idx[e.t];
+    if (!a||!b) return;
+    var dx=b.x-a.x, dy=b.y-a.y;
+    var dist=Math.sqrt(dx*dx+dy*dy)||0.1;
+    var stretch=dist-REST_LEN*(1/e.w);
+    var force=SPRING_K*stretch;
+    var fx=force*(dx/dist), fy=force*(dy/dist);
+    if(a!==dragNode){a.vx+=fx; a.vy+=fy;}
+    if(b!==dragNode){b.vx-=fx; b.vy-=fy;}
   });
 
-  // ── Boot ──────────────────────────────────────────────────────────────
-  doRefresh();
+  // Gravity to centre + damping + integrate
+  graphNodes.forEach(function(n) {
+    if (n===dragNode) return;
+    n.vx += GRAVITY*(cx-n.x);
+    n.vy += GRAVITY*(cy-n.y);
+    n.vx *= DAMPING; n.vy *= DAMPING;
+    n.x  += n.vx;    n.y  += n.vy;
+    var pad=n.radius+4;
+    n.x=Math.max(pad,Math.min(W-pad,n.x));
+    n.y=Math.max(pad,Math.min(H-pad,n.y));
+  });
+}
+
+function drawGraph() {
+  var canvas = document.getElementById('graph-canvas');
+  var ctx    = canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Background grid
+  ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=1;
+  for(var gx=0;gx<W;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(var gy=0;gy<H;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+  var idx={};
+  graphNodes.forEach(function(n){idx[n.id]=n;});
+
+  // Edges
+  graphEdges.forEach(function(e) {
+    var a=idx[e.s], b=idx[e.t];
+    if (!a||!b) return;
+    var isHl = selectedNode && (selectedNode===a || selectedNode===b);
+    ctx.globalAlpha = isHl ? 0.9 : 0.3;
+    ctx.strokeStyle = isHl ? nodeColors[b.type] : '#444';
+    ctx.lineWidth   = e.w*2.5;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    ctx.setLineDash([]);
+    // Arrowhead
+    if (isHl) {
+      var ang=Math.atan2(b.y-a.y,b.x-a.x);
+      var tip=b.radius+4;
+      var tx=b.x-tip*Math.cos(ang), ty=b.y-tip*Math.sin(ang);
+      ctx.globalAlpha=0.9;
+      ctx.fillStyle=nodeColors[b.type];
+      ctx.beginPath();
+      ctx.moveTo(tx,ty);
+      ctx.lineTo(tx-10*Math.cos(ang-0.4),ty-10*Math.sin(ang-0.4));
+      ctx.lineTo(tx-10*Math.cos(ang+0.4),ty-10*Math.sin(ang+0.4));
+      ctx.closePath(); ctx.fill();
+    }
+    // Edge weight label on highlighted
+    if (isHl) {
+      ctx.globalAlpha=0.85;
+      ctx.fillStyle='#fff';
+      ctx.font='9px Courier New';
+      ctx.textAlign='center';
+      ctx.fillText(e.w.toFixed(2),(a.x+b.x)/2,(a.y+b.y)/2-5);
+    }
+  });
+  ctx.globalAlpha=1;
+
+  // Nodes
+  graphNodes.forEach(function(n) {
+    var col = nodeColors[n.type];
+    var isSel  = selectedNode===n;
+    var isHov  = hoveredNode===n && !isSel;
+    var r = n.radius;
+
+    // Glow
+    if (isSel || isHov) {
+      var grd = ctx.createRadialGradient(n.x,n.y,r*0.5,n.x,n.y,r*2.2);
+      grd.addColorStop(0, col+'66');
+      grd.addColorStop(1, col+'00');
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(n.x,n.y,r*2.2,0,Math.PI*2); ctx.fill();
+    }
+
+    // Node circle
+    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+    ctx.fillStyle   = isSel ? col : '#0a0a0a';
+    ctx.strokeStyle = col;
+    ctx.lineWidth   = isSel ? 2 : (isHov ? 2 : 1.5);
+    ctx.fill(); ctx.stroke();
+
+    // Label
+    var lines=n.label.split('\n');
+    ctx.font = (isSel?'bold ':'')+'9px Courier New';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillStyle = isSel ? '#000' : col;
+    var lh=10, startY=n.y-(lines.length-1)*lh/2;
+    lines.forEach(function(l,i){ ctx.fillText(l,n.x,startY+i*lh); });
+  });
+
+  // Tooltip for selected node
+  if (selectedNode) {
+    var n=selectedNode;
+    var connected=graphEdges.filter(function(e){return idx[e.s]===n||idx[e.t]===n;});
+    var lines=['['+n.type.toUpperCase()+'] '+n.id];
+    connected.forEach(function(e){
+      var other=idx[e.s]===n?idx[e.t]:idx[e.s];
+      var dir=idx[e.s]===n?'→':'←';
+      lines.push(dir+' '+other.id+' (w='+e.w.toFixed(2)+')');
+    });
+    var pad=8, lh=14, tw=200;
+    var bh=pad*2+lines.length*lh;
+    var bx=Math.min(n.x+n.radius+8, W-tw-4);
+    var by=Math.max(4, n.y-bh/2);
+    ctx.fillStyle='#050505'; ctx.strokeStyle=nodeColors[n.type]; ctx.lineWidth=1;
+    ctx.fillRect(bx,by,tw,bh); ctx.strokeRect(bx,by,tw,bh);
+    ctx.font='9px Courier New'; ctx.textAlign='left'; ctx.textBaseline='top';
+    lines.forEach(function(l,i){
+      ctx.fillStyle=i===0?nodeColors[n.type]:'#aaa';
+      ctx.fillText(l,bx+pad,by+pad+i*lh);
+    });
+  }
+}
+
+function graphLoop() {
+  if (!graphRunning) return;
+  tickGraph();
+  drawGraph();
+  graphAnimFrame = requestAnimationFrame(graphLoop);
+}
+
+function startGraphLoop() {
+  if (!graphInited) initGraphPositions();
+  if (graphRunning) return;
+  graphRunning = true;
+  graphLoop();
+}
+
+function stopGraphLoop() {
+  graphRunning = false;
+  if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
+}
+
+// Update graph node labels from live API data
+function updateGraphFromData(kpi, models) {
+  if (kpi) {
+    graphNodes.find(function(n){return n.id==='o-revenue';}).label = 'REVENUE\n+'+fmtMoney(kpi.total_incremental_revenue);
+    graphNodes.find(function(n){return n.id==='o-ltv';}).label = 'AVG LTV\n'+fmtMoney(kpi.avg_ltv);
+    graphNodes.find(function(n){return n.id==='o-churn';}).label = 'CHURN\n'+fmt(kpi.churn_rate,1)+'%';
+  }
+  if (models) {
+    graphNodes.find(function(n){return n.id==='seg-new';}).radius = 18+Math.round((models.churn_model_auc||0.7)*10);
+    graphNodes.find(function(n){return n.id==='seg-hv';}).radius  = 18+Math.round((models.ltv_model_mae?Math.max(0,1-models.ltv_model_mae/200):0.5)*12);
+  }
+}
+
+// Graph mouse events
+(function() {
+  var canvas = document.getElementById('graph-canvas');
+  function nodeAt(mx, my) {
+    for (var i=graphNodes.length-1;i>=0;i--) {
+      var n=graphNodes[i];
+      var dx=mx-n.x, dy=my-n.y;
+      if (dx*dx+dy*dy<=n.radius*n.radius) return n;
+    }
+    return null;
+  }
+  canvas.addEventListener('mousedown', function(e) {
+    var r=canvas.getBoundingClientRect();
+    var n=nodeAt(e.clientX-r.left, e.clientY-r.top);
+    if (n) { dragNode=n; n.vx=0; n.vy=0; selectedNode=n; }
+    else   { selectedNode=null; }
+  });
+  canvas.addEventListener('mousemove', function(e) {
+    var r=canvas.getBoundingClientRect();
+    var mx=e.clientX-r.left, my=e.clientY-r.top;
+    if (dragNode) { dragNode.x=mx; dragNode.y=my; }
+    else           { hoveredNode=nodeAt(mx,my); canvas.style.cursor=hoveredNode?'pointer':'grab'; }
+  });
+  canvas.addEventListener('mouseup', function() { dragNode=null; });
+  canvas.addEventListener('mouseleave', function() { dragNode=null; hoveredNode=null; });
+  // Touch support
+  canvas.addEventListener('touchstart', function(e) {
+    var r=canvas.getBoundingClientRect(), t=e.touches[0];
+    dragNode=nodeAt(t.clientX-r.left,t.clientY-r.top);
+    if(dragNode){dragNode.vx=0;dragNode.vy=0;selectedNode=dragNode;}
+    e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchmove', function(e) {
+    if(!dragNode)return;
+    var r=canvas.getBoundingClientRect(), t=e.touches[0];
+    dragNode.x=t.clientX-r.left; dragNode.y=t.clientY-r.top;
+    e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchend', function(){ dragNode=null; });
+})();
+
+window.addEventListener('resize', function() {
+  if (activeTab==='graph') { resizeGraph(); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFRESH + KEYBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function setLastRefresh() {
+  var now=new Date();
+  var h=now.getUTCHours().toString().padStart(2,'0');
+  var m=now.getUTCMinutes().toString().padStart(2,'0');
+  var s=now.getUTCSeconds().toString().padStart(2,'0');
+  var el=document.getElementById('last-refresh');
+  if(el) el.textContent=h+':'+m+':'+s;
+}
+
+function doRefresh() {
+  Promise.all([fetchHealth(), fetchKPIs(), fetchModels(), fetchFreshness()])
+    .then(function(){ setLastRefresh(); startCountdown(); });
+}
+
+document.addEventListener('keydown', function(e) {
+  if (document.getElementById('c360-input')===document.activeElement) return;
+  if (e.key==='F1') { e.preventDefault(); setTab('kpi'); }
+  if (e.key==='F5') { e.preventDefault(); setTab('graph'); }
+  if (e.key==='F8') { e.preventDefault(); doRefresh(); }
+  if (e.key==='F9') { e.preventDefault(); toggleC360(); }
+  if (e.key==='Escape') { closeDrillForce(); closeC360(); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+doRefresh();
 </script>
 </body>
 </html>
