@@ -2,6 +2,10 @@
 
 > Unified ML platform combining **churn prediction**, **customer LTV prediction**, **cart abandonment recovery**, and **dynamic pricing** to drive retention, lifetime value growth, and revenue optimization.
 
+## Dashboard
+
+![Ecommerce Intelligence Dashboard](docs/dashboard-screenshot.png)
+
 ## Quick Start
 
 ### Prerequisites
