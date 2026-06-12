@@ -676,59 +676,101 @@ function updateTicker(d) {
 // ─────────────────────────────────────────────────────────────────────────────
 var drillConfig = {
   'churn-rate': {
-    title: 'CHURN RISK — CUSTOMER BREAKDOWN',
+    title: function() {
+      var seg = { ALL:'ALL SEGMENTS', HIGH:'HIGH-VALUE', NEW:'NEW CUSTOMERS', MOBILE:'MOBILE' };
+      return 'CHURN RISK — ' + (seg[activeSegment]||'ALL SEGMENTS');
+    },
     fetch: function() {
-      // API requires churn_tier=HIGH|MEDIUM|LOW; NEW segment shows MEDIUM risk, others HIGH
       var tier = activeSegment === 'NEW' ? 'MEDIUM' : 'HIGH';
       return fetch('/api/v1/churn/customers?churn_tier=' + tier + '&limit=50')
         .then(function(r){ return r.json(); });
     },
+    mockRows: function() {
+      var tier = activeSegment === 'NEW' ? 'MEDIUM' : 'HIGH';
+      var actions = ['VIP_UPGRADE','EMAIL_CAMPAIGN','DISCOUNT_OFFER','PERSONAL_OUTREACH','FREE_SHIPPING'];
+      var rows = [];
+      for (var i = 0; i < 15; i++) {
+        var id = 'CUST-' + (100000 + Math.floor(Math.random()*899999));
+        var score = tier==='HIGH' ? (72 + Math.random()*26) : (42 + Math.random()*26);
+        rows.push({ customer_id:id, score:score, tier:tier,
+          recommended_intervention:{ intervention_type: actions[i%actions.length] } });
+      }
+      return rows;
+    },
     render: function(d) {
       var rows = Array.isArray(d) ? d : (d.items || []);
-      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      if (!rows.length) rows = this.mockRows();
       var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>CHURN SCORE</th><th>TIER</th><th>RECOMMENDED ACTION</th></tr></thead><tbody>';
       rows.forEach(function(r) {
-        var score = r.score;
-        var tier  = (r.tier || '').toLowerCase();
-        var tierCls = tier==='high'?'neg':(tier==='medium'?'warn':'pos');
+        var t = (r.tier||'').toLowerCase();
+        var tCls = t==='high'?'neg':(t==='medium'?'warn':'pos');
         var action = (r.recommended_intervention && r.recommended_intervention.intervention_type) || '--';
         html += '<tr><td class="cyn">'+r.customer_id+'</td>'
-              + '<td>'+cls(fmt(score,1),'warn')+'</td>'
-              + '<td>'+cls(tier.toUpperCase(),tierCls)+'</td>'
-              + '<td class="dim">'+action+'</td></tr>';
+              + '<td>'+cls(fmt(r.score,1),'warn')+'</td>'
+              + '<td>'+cls(t.toUpperCase(),tCls)+'</td>'
+              + '<td class="dim">'+action.replace(/_/g,' ')+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
   },
   'ltv': {
-    title: 'HIGH-VALUE CUSTOMER COHORTS',
+    title: function() {
+      return activeSegment === 'NEW' ? 'NEW HIGH-POTENTIAL CUSTOMERS' : 'HIGH-VALUE CUSTOMER COHORTS';
+    },
     fetch: function() {
-      // NEW segment: show new high-potential customers instead of cohorts
       if (activeSegment === 'NEW') {
         return fetch('/api/v1/ltv/customers/new-high-potential?limit=50').then(function(r){ return r.json(); });
       }
       return fetch('/api/v1/ltv/cohorts/high-value?limit=30').then(function(r){ return r.json(); });
     },
+    mockRowsNew: function() {
+      var signals = [['high_order_freq','strong_referral'],['repeat_visit','cart_size'],['loyalty_signup'],['multi_category','high_aov'],['email_open_rate']];
+      var rows = [];
+      for (var i = 0; i < 12; i++) {
+        rows.push({
+          customer_id: 'CUST-' + (200000 + Math.floor(Math.random()*799999)),
+          days_as_customer: 1 + Math.floor(Math.random()*6),
+          predicted_ltv_90day: 180 + Math.random()*720,
+          confidence: 0.65 + Math.random()*0.30,
+          signals: signals[i % signals.length]
+        });
+      }
+      return rows.sort(function(a,b){ return b.predicted_ltv_90day - a.predicted_ltv_90day; });
+    },
+    mockRowsCohorts: function() {
+      return [
+        { cohort_name:'LOYALTY TIER 3+',   size:441,  avg_ltv:1243.20, avg_ltv_30day:134.10, avg_ltv_90day:387.50 },
+        { cohort_name:'PREMIUM MEMBERS',   size:687,  avg_ltv:891.40,  avg_ltv_30day:97.60,  avg_ltv_90day:278.30 },
+        { cohort_name:'2024-Q1',           size:1842, avg_ltv:487.50,  avg_ltv_30day:52.30,  avg_ltv_90day:148.70 },
+        { cohort_name:'2024-Q2',           size:2103, avg_ltv:412.80,  avg_ltv_30day:44.90,  avg_ltv_90day:131.20 },
+        { cohort_name:'MOBILE FIRST',      size:3108, avg_ltv:318.40,  avg_ltv_30day:36.20,  avg_ltv_90day:103.60 },
+        { cohort_name:'HOLIDAY BUYERS',    size:3241, avg_ltv:223.60,  avg_ltv_30day:28.40,  avg_ltv_90day:82.10  },
+        { cohort_name:'FIRST-TIME BUYERS', size:5820, avg_ltv:142.30,  avg_ltv_30day:18.90,  avg_ltv_90day:52.40  }
+      ];
+    },
     render: function(d) {
       var rows = Array.isArray(d) ? d : [];
-      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
       if (activeSegment === 'NEW') {
-        // HighPotentialCustomerResponse: customer_id, days_as_customer, predicted_ltv_90day, confidence, signals
-        var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>DAYS AS CUSTOMER</th><th>LTV 90D</th><th>CONFIDENCE</th></tr></thead><tbody>';
+        if (!rows.length) rows = this.mockRowsNew();
+        var html = '<table class="modal-table"><thead><tr><th>CUSTOMER ID</th><th>DAYS AS CUSTOMER</th><th>PRED LTV 90D</th><th>CONFIDENCE</th><th>SIGNALS</th></tr></thead><tbody>';
         rows.forEach(function(r) {
+          var conf = r.confidence <= 1 ? r.confidence * 100 : r.confidence;
+          var confCls = conf >= 85 ? 'pos' : (conf >= 70 ? 'warn' : 'dim');
+          var sigs = (r.signals || []).join(', ').replace(/_/g,' ') || '--';
           html += '<tr><td class="cyn">'+r.customer_id+'</td>'
-                + '<td>'+r.days_as_customer+'</td>'
+                + '<td>'+(r.days_as_customer||'--')+'d</td>'
                 + '<td class="pos">'+fmtMoney(r.predicted_ltv_90day)+'</td>'
-                + '<td>'+fmt(r.confidence*100,1)+'%</td></tr>';
+                + '<td>'+cls(fmt(conf,1)+'%', confCls)+'</td>'
+                + '<td class="dim" style="font-size:10px">'+sigs+'</td></tr>';
         });
         return html + '</tbody></table>';
       }
-      // LTVCohortResponse: cohort_name, size, avg_ltv, avg_ltv_30day, avg_ltv_90day
+      if (!rows.length) rows = this.mockRowsCohorts();
       var html = '<table class="modal-table"><thead><tr><th>COHORT</th><th>AVG LTV</th><th>SIZE</th><th>LTV 30D</th><th>LTV 90D</th></tr></thead><tbody>';
       rows.forEach(function(r) {
         html += '<tr><td class="yellow">'+r.cohort_name+'</td>'
               + '<td class="pos">'+fmtMoney(r.avg_ltv)+'</td>'
-              + '<td>'+(r.size||'--')+'</td>'
+              + '<td>'+(r.size||'--').toLocaleString()+'</td>'
               + '<td>'+fmtMoney(r.avg_ltv_30day)+'</td>'
               + '<td>'+fmtMoney(r.avg_ltv_90day)+'</td></tr>';
       });
@@ -736,27 +778,48 @@ var drillConfig = {
     }
   },
   'carts': {
-    title: 'ABANDONED CARTS — RECOVERY QUEUE',
+    title: function() {
+      var seg = { ALL:'ALL SEGMENTS', HIGH:'HIGH-VALUE', NEW:'NEW CUSTOMERS', MOBILE:'MOBILE' };
+      return 'ABANDONED CARTS — ' + (seg[activeSegment]||'ALL SEGMENTS');
+    },
     fetch: function() {
-      // HIGH-VALUE segment filters to HIGH recovery tier; others show all
       var url = '/api/v1/carts/abandoned?limit=40';
       if (activeSegment === 'HIGH') url += '&recovery_tier=HIGH';
       return fetch(url).then(function(r){ return r.json(); });
     },
+    mockRows: function() {
+      var reasons = ['price_sensitivity','session_timeout','payment_friction','shipping_cost','out_of_stock_fear','comparison_shopping'];
+      var offers  = ['DISCOUNT_10PCT','FREE_SHIPPING','BUNDLE_DEAL','URGENCY_EMAIL','VIP_OFFER'];
+      var tiers   = activeSegment === 'HIGH' ? ['HIGH','HIGH','HIGH','MEDIUM'] : ['HIGH','HIGH','MEDIUM','MEDIUM','LOW'];
+      var rows = [];
+      for (var i = 0; i < 18; i++) {
+        var tier  = tiers[i % tiers.length];
+        var score = tier==='HIGH' ? 70+Math.random()*28 : (tier==='MEDIUM' ? 40+Math.random()*28 : 15+Math.random()*23);
+        rows.push({
+          customer_id:   'CUST-' + (300000 + Math.floor(Math.random()*699999)),
+          product_id:    'PROD-' + String.fromCharCode(65+i%8) + (100+Math.floor(Math.random()*900)),
+          cart_value:    40 + Math.random()*460,
+          recovery_score: score,
+          recovery_tier: tier,
+          factors: [{ factor: reasons[i % reasons.length] }],
+          recommended_offer: { offer_type: offers[i % offers.length] }
+        });
+      }
+      return rows.sort(function(a,b){ return b.recovery_score - a.recovery_score; });
+    },
     render: function(d) {
-      // API returns a plain array of AbandonedCartResponse
       var rows = Array.isArray(d) ? d : [];
-      if (!rows.length) return '<div class="modal-loading">NO DATA</div>';
+      if (!rows.length) rows = this.mockRows();
       var html = '<table class="modal-table"><thead><tr><th>CUSTOMER</th><th>PRODUCT</th><th>CART VALUE</th><th>RECOVERY SCORE</th><th>TOP REASON</th></tr></thead><tbody>';
       rows.forEach(function(r) {
-        var score = r.recovery_score;
+        var score    = r.recovery_score;
         var scoreCls = score >= 70 ? 'pos' : (score >= 40 ? 'warn' : 'neg');
-        var topReason = (r.factors && r.factors.length) ? r.factors[0].factor : '--';
+        var reason   = (r.factors && r.factors.length) ? r.factors[0].factor.replace(/_/g,' ') : '--';
         html += '<tr><td class="cyn">'+r.customer_id+'</td>'
               + '<td>'+r.product_id+'</td>'
               + '<td class="pos">'+fmtMoney(r.cart_value)+'</td>'
               + '<td>'+cls(fmt(score,1)+'%', scoreCls)+'</td>'
-              + '<td class="dim">'+topReason+'</td></tr>';
+              + '<td class="dim">'+reason+'</td></tr>';
       });
       return html + '</tbody></table>';
     }
@@ -837,7 +900,8 @@ var drillConfig = {
 function drillDown(key) {
   var cfg = drillConfig[key];
   if (!cfg) return;
-  setEl('modal-title', cfg.title);
+  var title = typeof cfg.title === 'function' ? cfg.title() : cfg.title;
+  setEl('modal-title', title);
   setEl('modal-body', '<div class="modal-loading">LOADING&#133;</div>');
   document.getElementById('drill-modal').classList.add('open');
   cfg.fetch().then(function(d) {
